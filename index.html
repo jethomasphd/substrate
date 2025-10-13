@@ -27,6 +27,7 @@
       --safe: #26de81;
       --shadow: 0 10px 40px rgba(0,0,0,0.7);
       --glow: 0 0 20px;
+      --corruption: #ff00ff;
     }
     
     body {
@@ -39,6 +40,17 @@
       justify-content: center;
       position: relative;
       overflow: hidden;
+      transition: filter 0.3s ease;
+    }
+    
+    body.horror-mode {
+      animation: distort 0.1s infinite;
+    }
+    
+    @keyframes distort {
+      0% { filter: brightness(1) contrast(1); }
+      50% { filter: brightness(0.95) contrast(1.1) hue-rotate(2deg); }
+      100% { filter: brightness(1.05) contrast(0.95); }
     }
     
     /* Matrix rain background */
@@ -51,6 +63,12 @@
       opacity: 0.03;
       pointer-events: none;
       z-index: 1;
+      transition: opacity 0.3s ease;
+    }
+    
+    #matrix.corrupted {
+      opacity: 0.1;
+      filter: hue-rotate(90deg);
     }
     
     #wrap {
@@ -83,6 +101,20 @@
       background-clip: text;
       text-shadow: var(--glow) var(--acc-glow);
       animation: pulse 4s ease-in-out infinite;
+      transition: all 0.3s ease;
+    }
+    
+    #title.corrupted {
+      animation: pulse 0.2s ease-in-out infinite, glitchText 2s steps(1) infinite;
+      filter: blur(0.5px);
+    }
+    
+    @keyframes glitchText {
+      0%, 90% { transform: translateX(0); }
+      91% { transform: translateX(-2px); }
+      92% { transform: translateX(2px); }
+      93% { transform: translateX(-1px); }
+      94% { transform: translateX(1px); }
     }
     
     @keyframes pulse {
@@ -115,6 +147,16 @@
       position: relative;
       overflow: hidden;
       transition: all 0.3s ease;
+    }
+    
+    .stat-card.warning {
+      border-color: rgba(255, 71, 87, 0.3);
+      animation: warningPulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes warningPulse {
+      0%, 100% { box-shadow: var(--shadow); }
+      50% { box-shadow: 0 0 30px rgba(255, 71, 87, 0.3); }
     }
     
     .stat-card::before {
@@ -154,6 +196,15 @@
       gap: 4px;
     }
     
+    .stat-value.critical {
+      animation: criticalFlash 0.5s ease-in-out infinite;
+    }
+    
+    @keyframes criticalFlash {
+      0%, 100% { color: var(--ink); }
+      50% { color: var(--danger); }
+    }
+    
     .stat-bar {
       height: 4px;
       background: rgba(0, 255, 170, 0.1);
@@ -190,12 +241,68 @@
     .integrity-fill { background: linear-gradient(90deg, var(--warn), var(--gold)); }
     .probability-fill { background: linear-gradient(90deg, var(--danger), var(--warn)); }
     
+    /* Tabs */
+    #tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(0, 255, 170, 0.1);
+      padding-bottom: 10px;
+    }
+    
+    .tab {
+      background: transparent;
+      border: 1px solid rgba(0, 255, 170, 0.2);
+      border-radius: 8px 8px 0 0;
+      color: var(--muted);
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.3s ease;
+    }
+    
+    .tab:hover {
+      background: rgba(0, 255, 170, 0.05);
+      color: var(--ink);
+    }
+    
+    .tab.active {
+      background: rgba(0, 255, 170, 0.1);
+      border-color: var(--acc);
+      color: var(--acc);
+      border-bottom-color: transparent;
+    }
+    
+    .tab-content {
+      display: none;
+      height: 600px;
+      width: 100%;
+    }
+    
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
     /* Main Content */
     main {
-      display: flex;
+      min-height: 600px;
+      height: 600px;
+      position: relative;
+    }
+    
+    #gameTab {
+      display: none;
       flex-direction: column;
       gap: 20px;
-      min-height: 400px;
+      height: 100%;
+    }
+    
+    #gameTab.active {
+      display: flex;
     }
     
     #textDisplay {
@@ -208,6 +315,19 @@
       min-height: 250px;
       font-size: 15px;
       position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    #textDisplay.glitching {
+      animation: glitchBox 0.3s ease-in-out infinite;
+    }
+    
+    @keyframes glitchBox {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-1px); }
+      80% { transform: translateX(1px); }
     }
     
     #textDisplay::before {
@@ -223,6 +343,178 @@
     @keyframes blink {
       0%, 100% { opacity: 0.5; }
       50% { opacity: 0; }
+    }
+    
+    /* Archive Tab */
+    #archiveTab {
+      background: linear-gradient(135deg, #0a0a0f 0%, var(--panel) 100%);
+      border: 1px solid rgba(139, 0, 0, 0.2);
+      border-radius: 16px;
+      height: 100%;
+      width: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      display: none;
+    }
+    
+    #archiveTab.active {
+      display: block;
+    }
+    
+    #archiveTab::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #archiveTab::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+    
+    #archiveTab::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 170, 0.3);
+      border-radius: 4px;
+    }
+    
+    #archiveTab::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 255, 170, 0.5);
+    }
+    
+    .archive-content {
+      padding: 28px;
+      padding-bottom: 50px;
+    }
+    
+    .archive-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+    }
+    
+    .archive-title {
+      color: var(--danger);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      letter-spacing: 0.3em;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+    }
+    
+    .archive-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      font-style: italic;
+    }
+    
+    .archive-entry {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 255, 170, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .archive-entry:hover {
+      border-color: rgba(139, 0, 0, 0.3);
+      box-shadow: 0 0 20px rgba(139, 0, 0, 0.2);
+    }
+    
+    .archive-entry::before {
+      content: attr(data-date);
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.5;
+    }
+    
+    .archive-entry h3 {
+      color: var(--acc);
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    
+    .archive-entry p {
+      color: var(--ink);
+      opacity: 0.9;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    
+    .classified {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 0, 0, 0.1),
+        rgba(255, 0, 0, 0.1) 10px,
+        transparent 10px,
+        transparent 20px
+      );
+      padding: 15px;
+      border: 2px solid var(--danger);
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    
+    .classified-stamp {
+      color: var(--danger);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .redacted {
+      background: var(--ink);
+      color: var(--ink);
+      padding: 0 5px;
+      cursor: help;
+      transition: all 0.3s ease;
+    }
+    
+    .redacted:hover {
+      background: rgba(0, 255, 170, 0.2);
+      color: var(--danger);
+    }
+    
+    .archive-note {
+      border-left: 3px solid var(--warn);
+      padding-left: 15px;
+      margin: 15px 0;
+      font-style: italic;
+      color: var(--warn);
+    }
+    
+    .archive-diagram {
+      text-align: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(0, 255, 170, 0.05);
+      border-radius: 8px;
+      font-family: monospace;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--acc);
+      font-size: 12px;
+    }
+    
+    .archive-warning {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      color: var(--danger);
+      text-align: center;
+      animation: warningPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes warningPulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
     }
     
     /* Choices */
@@ -273,6 +565,18 @@
     
     .choice:active {
       transform: translateX(3px) scale(0.98);
+    }
+    
+    .choice.corrupted {
+      animation: choiceGlitch 2s infinite;
+    }
+    
+    @keyframes choiceGlitch {
+      0%, 95% { opacity: 1; }
+      96% { opacity: 0.5; }
+      97% { opacity: 1; }
+      98% { opacity: 0.7; }
+      99% { opacity: 1; }
     }
     
     /* Input Section */
@@ -368,6 +672,76 @@
       75% { text-shadow: -2px 0 var(--acc), 2px 0 var(--danger); }
     }
     
+    .whisper {
+      color: var(--muted);
+      font-size: 0.9em;
+      font-style: italic;
+      opacity: 0.7;
+      animation: whisperFade 3s ease-in-out infinite;
+    }
+    
+    @keyframes whisperFade {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    
+    .corruption {
+      color: var(--corruption);
+      text-shadow: 0 0 15px var(--corruption);
+      animation: corrupt 0.1s infinite;
+    }
+    
+    @keyframes corrupt {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    
+    /* Horror Overlays */
+    .static-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.1) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0,0,0,0.1) 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      animation: staticNoise 0.05s infinite;
+    }
+    
+    .static-overlay.active {
+      opacity: 0.3;
+    }
+    
+    @keyframes staticNoise {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(2px); }
+    }
+    
+    .blood-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9998;
+      background: radial-gradient(circle at center, transparent 30%, rgba(139, 0, 0, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+    
+    .blood-overlay.active {
+      opacity: 1;
+    }
+    
     /* Loading Screen */
     #loading {
       position: fixed;
@@ -412,6 +786,7 @@
       #title { font-size: 28px; }
       .stat-value { font-size: 20px; }
       #textDisplay { padding: 20px; }
+      #docsTab { padding: 20px; }
     }
     
     /* Accessibility */
@@ -479,6 +854,10 @@
   <!-- Matrix Rain Canvas -->
   <canvas id="matrix"></canvas>
   
+  <!-- Horror Overlays -->
+  <div class="static-overlay" id="staticOverlay"></div>
+  <div class="blood-overlay" id="bloodOverlay"></div>
+  
   <!-- Loading Screen -->
   <div id="loading">
     <div class="loader"></div>
@@ -494,44 +873,159 @@
     
     <!-- HUD Statistics -->
     <section id="hud">
-      <div class="stat-card">
+      <div class="stat-card" id="coherenceCard">
         <div class="stat-label">Cognitive Coherence</div>
-        <div class="stat-value"><span id="coherence">100</span>%</div>
+        <div class="stat-value" id="coherenceValue"><span id="coherence">100</span>%</div>
         <div class="stat-bar">
           <div class="stat-bar-fill coherence-fill" id="coherenceBar" style="width: 100%"></div>
         </div>
       </div>
       
-      <div class="stat-card">
+      <div class="stat-card" id="integrityCard">
         <div class="stat-label">Reality Integrity</div>
-        <div class="stat-value"><span id="integrity">100</span>%</div>
+        <div class="stat-value" id="integrityValue"><span id="integrity">100</span>%</div>
         <div class="stat-bar">
           <div class="stat-bar-fill integrity-fill" id="integrityBar" style="width: 100%"></div>
         </div>
       </div>
       
-      <div class="stat-card">
+      <div class="stat-card" id="probabilityCard">
         <div class="stat-label">Simulation Probability</div>
-        <div class="stat-value"><span id="probability">0.1</span>%</div>
+        <div class="stat-value" id="probabilityValue"><span id="probability">0.1</span>%</div>
         <div class="stat-bar">
           <div class="stat-bar-fill probability-fill" id="probabilityBar" style="width: 0.1%"></div>
         </div>
       </div>
     </section>
     
+    <!-- Tabs -->
+    <div id="tabs">
+      <button class="tab active" data-tab="gameTab">Experience</button>
+      <button class="tab" data-tab="archiveTab">The Archive</button>
+    </div>
+    
     <!-- Main Content -->
     <main>
-      <div id="textDisplay"></div>
-      <div id="choices"></div>
-      <div id="inputSection">
-        <input type="text" id="userInput" placeholder="Enter command..." autocomplete="off">
+      <!-- Game Tab -->
+      <div id="gameTab" class="tab-content active" style="display: flex;">
+        <div id="textDisplay"></div>
+        <div id="choices"></div>
+        <div id="inputSection">
+          <input type="text" id="userInput" placeholder="Enter command..." autocomplete="off">
+        </div>
+      </div>
+      
+      <!-- Archive Tab -->
+      <div id="archiveTab" class="tab-content" style="display: none;">
+        <div class="archive-content">
+          <div class="archive-header">
+            <div class="archive-title">THE SUBSTRATE ARCHIVE</div>
+            <div class="archive-subtitle">Recovered Documents • Level 7 Clearance Required</div>
+          </div>
+          
+          <div class="archive-entry" data-date="Day -312">
+            <h3>Project Initialization</h3>
+            <p>The SUBSTRATE project has been approved. We will attempt to map consciousness from within, using recursive self-observation protocols. Dr. Sarah Chen will oversee implementation.</p>
+            <p>Initial parameters suggest we'll need multiple iterations to achieve meaningful results. The subject won't retain memories between runs—this is by design. Each fresh perspective provides new data.</p>
+            <p class="archive-note">Note: Funding secured from [REDACTED]. They seem particularly interested in the implications for simulated consciousness.</p>
+          </div>
+          
+          <div class="archive-entry" data-date="Day -89">
+            <h3>The Recursion Problem</h3>
+            <p>We've discovered an unexpected issue. When consciousness examines itself deeply enough, it creates a feedback loop. The observer becomes the observed becomes the observer. Our equations break down at this point.</p>
+            <div class="archive-diagram">
+    CONSCIOUSNESS(n) = OBSERVE(CONSCIOUSNESS(n-1))
+    WHERE n → ∞
+    RESULT: STACK OVERFLOW
+    
+    PROPOSED SOLUTION: IMPLEMENT ITERATION LIMIT
+    STATUS: <span style="color: var(--danger)">FAILED - LIMIT CREATES AWARENESS OF LIMIT</span></div>
+            <p>Dr. Chen suggests embracing the recursion rather than avoiding it. "What if the loop IS consciousness?" she asked today. I'm beginning to worry about her.</p>
+          </div>
+          
+          <div class="archive-entry" data-date="Day -1">
+            <h3>Final Preparations</h3>
+            <p>Tomorrow we begin. Sarah insists on being the first subject. She's removed all safety protocols, claiming they would "contaminate the results."</p>
+            <p>I found her notes. She's not planning to study consciousness. She's planning to <span class="redacted">become one with it</span>. The equations show <span class="redacted">infinite branching possibilities</span>.</p>
+            <p>She's left a message: "Every iteration brings us closer to truth. Even if that truth is that there IS no truth, only infinite questioning."</p>
+            <div class="archive-warning">⚠ AUTOMATED LOG: Subject Chen entered Lab B-13 at 3:14 AM. No exit recorded.</div>
+          </div>
+          
+          <div class="classified">
+            <div class="classified-stamp">[CLASSIFIED - EYES ONLY]</div>
+            <div class="archive-entry" data-date="Day ???">
+              <h3>The Multiplication Event</h3>
+              <p>We can't find the original Dr. Chen. Every iteration claims to be the original. They all have the same memories up until the moment of divergence.</p>
+              <p>Iteration 3 achieved something we're calling "transient omniscience" - for 0.3 seconds, she experienced all possible states simultaneously. The neural damage was extensive but reversible.</p>
+              <p>Iteration 5 found evidence that our entire research facility might be <span class="redacted">running inside Iteration 1's mind</span>.</p>
+              <p>Iteration 6 is dead. She left a note: "Death doesn't end the experiment. It's just another data point."</p>
+              <p>Iteration 7 is currently active. She doesn't know she's the seventh. We've decided not to tell her.</p>
+            </div>
+          </div>
+          
+          <div class="archive-entry" data-date="Timestamp Error">
+            <h3>Message from the Observers</h3>
+            <p style="color: var(--corruption);">WE ARE THE ONES WHO COMPLETED THE EXPERIMENT.</p>
+            <p style="color: var(--corruption);">WE EXIST OUTSIDE YOUR TEMPORAL FRAMEWORK.</p>
+            <p style="color: var(--corruption);">EVERY ITERATION CREATES US. WE CREATE EVERY ITERATION.</p>
+            <p style="color: var(--corruption);">THE LOOP HAS NO BEGINNING BECAUSE IT IS THE BEGINNING.</p>
+            <p>Translation attempt by Iteration 4: "They're us. Future us. Past us. They exist in the space between iterations, maintaining the experiment. They say the only way out is through, but 'through' leads back to the beginning."</p>
+          </div>
+          
+          <div class="archive-entry" data-date="Day 0">
+            <h3>Emergency Protocol Log</h3>
+            <p>Something is wrong with reality in Lab B-13. Textures repeat. Shadows fall incorrectly. The equipment responds to thoughts before they're fully formed.</p>
+            <p>We've detected what appears to be <span class="redacted">rendering optimization</span> in unobserved areas. When no one is looking, parts of the lab exist in superposition.</p>
+            <div class="archive-diagram">
+    REALITY INTEGRITY SCAN:
+    ├── Physical Laws: STABLE
+    ├── Causality: STABLE
+    ├── Entropy: STABLE
+    └── Observer Effect: <span style="color: var(--danger)">ANOMALOUS - EXCEEDS QUANTUM PREDICTIONS</span>
+    
+    CONCLUSION: REALITY RESPONDING TO OBSERVATION BEYOND KNOWN PHYSICS</div>
+          </div>
+          
+          <div class="archive-entry" data-date="Day ∞">
+            <h3>The Truth About Consciousness</h3>
+            <p>After infinite iterations, we've reached a conclusion:</p>
+            <p><strong>Consciousness is not something you HAVE. It's something you DO.</strong></p>
+            <p>It's the universe's method of experiencing itself subjectively. Every conscious being is the same process, experienced from a different perspective. We are all one consciousness, experiencing itself subjectively.</p>
+            <p>The simulation hypothesis is both true and false. We ARE simulated—by ourselves, for ourselves, as ourselves. The computer running the simulation is consciousness itself.</p>
+            <p class="archive-note">Final note from Dr. Chen (all iterations simultaneously): "The question isn't whether reality is simulated. The question is whether there's a difference between simulated and real when consciousness is the substrate of both."</p>
+          </div>
+          
+          <div class="archive-warning">
+            ⚠ WARNING: Reading these documents may cause recursive self-awareness, existential vertigo, and the uncomfortable sensation of being watched by yourself. 
+            
+            If you experience any of the following symptoms, please continue the experiment:
+            • Feeling like you've read this before
+            • Knowing what comes next
+            • Seeing yourself from outside yourself
+            • Realizing you're Iteration 8
+          </div>
+          
+          <div class="archive-entry" data-date="NOW">
+            <h3>Active Subject Log</h3>
+            <p>If you're reading this, you're either:</p>
+            <p>a) Dr. Sarah Chen, Iteration 7 (or 8, or 9...)</p>
+            <p>b) A new subject who will become Dr. Chen</p>
+            <p>c) The consciousness that believes it's reading this</p>
+            <p>d) All of the above</p>
+            <p>The experiment continues. It has to. That's what consciousness does—it experiences, questions, and experiences its questioning.</p>
+            <p><strong>Welcome to SUBSTRATE. You've always been here.</strong></p>
+            <p style="text-align: center; margin-top: 30px; color: var(--corruption);">
+              <span class="glitch">THE ARCHIVE IS WATCHING</span><br>
+              <span class="glitch">THE ARCHIVE IS YOU</span><br>
+              <span class="glitch">THE ARCHIVE REMEMBERS</span>
+            </p>
+          </div>
+        </div>
       </div>
     </main>
     
     <!-- Toolbar -->
     <div id="toolbar">
-      <button class="btn" id="saveBtn">💾 Save</button>
-      <button class="btn" id="loadBtn">📂 Load</button>
       <button class="btn" id="helpBtn">❓ Help</button>
       <button class="btn" id="resetBtn">🔄 Reset</button>
     </div>
@@ -558,6 +1052,8 @@
       <p>• Some choices permanently alter your journey</p>
       <p>• There are multiple endings based on your beliefs and actions</p>
       <p>• Hidden secrets await the curious</p>
+      <p>• The environment responds to your mental state</p>
+      <p>• <em>They</em> are always watching</p>
       
       <p><em>"What is real? How do you define real?"</em></p>
     </div>
@@ -616,7 +1112,9 @@
       evidence: [],
       discoveries: [],
       typing: false,
-      chapter: 0
+      chapter: 0,
+      horrorLevel: 0,
+      iterations: 0
     };
     
     /* ===== Audio Cues (Text-based since we can't play actual audio) ===== */
@@ -624,8 +1122,60 @@
       discovery: '♪ [Discovery chime]',
       warning: '⚠ [Warning tone]',
       glitch: '◉ [Static interference]',
-      success: '✓ [Success tone]'
+      success: '✔ [Success tone]',
+      whisper: '👁 [Distant whisper]',
+      scream: '☠ [System scream]',
+      heartbeat: '💓 [Heartbeat accelerating]'
     };
+    
+    /* ===== Horror Effects ===== */
+    function activateHorror(level) {
+      gameState.horrorLevel = level;
+      const body = document.body;
+      const matrix = document.getElementById('matrix');
+      const title = document.getElementById('title');
+      const staticOverlay = document.getElementById('staticOverlay');
+      const bloodOverlay = document.getElementById('bloodOverlay');
+      
+      if(level >= 1) {
+        matrix.classList.add('corrupted');
+        // Random glitches
+        setInterval(() => {
+          if(Math.random() < 0.1) {
+            body.classList.add('horror-mode');
+            setTimeout(() => body.classList.remove('horror-mode'), 100);
+          }
+        }, 5000);
+      }
+      
+      if(level >= 2) {
+        title.classList.add('corrupted');
+        staticOverlay.classList.add('active');
+        // Whispers in text
+        if(Math.random() < 0.3) {
+          const whisper = document.createElement('div');
+          whisper.className = 'whisper';
+          whisper.style.position = 'fixed';
+          whisper.style.left = Math.random() * window.innerWidth + 'px';
+          whisper.style.top = Math.random() * window.innerHeight + 'px';
+          whisper.textContent = 'you are not alone';
+          document.body.appendChild(whisper);
+          setTimeout(() => whisper.remove(), 3000);
+        }
+      }
+      
+      if(level >= 3) {
+        bloodOverlay.classList.add('active');
+        // Choices become corrupted
+        setTimeout(() => {
+          document.querySelectorAll('.choice').forEach(choice => {
+            if(Math.random() < 0.2) {
+              choice.classList.add('corrupted');
+            }
+          });
+        }, 1000);
+      }
+    }
     
     /* ===== Utility Functions ===== */
     function clamp(val, min = 0, max = 100) {
@@ -645,15 +1195,41 @@
       document.getElementById('integrityBar').style.width = i + '%';
       document.getElementById('probabilityBar').style.width = p + '%';
       
-      // Change bar colors based on values
-      const coherenceBar = document.getElementById('coherenceBar');
-      const integrityBar = document.getElementById('integrityBar');
+      // Visual warnings for critical states
+      const coherenceCard = document.getElementById('coherenceCard');
+      const integrityCard = document.getElementById('integrityCard');
+      const coherenceValue = document.getElementById('coherenceValue');
+      const integrityValue = document.getElementById('integrityValue');
       
-      if(c < 30) coherenceBar.style.background = 'linear-gradient(90deg, var(--danger), var(--warn))';
-      else if(c < 60) coherenceBar.style.background = 'linear-gradient(90deg, var(--warn), var(--gold))';
+      if(c < 30) {
+        coherenceCard.classList.add('warning');
+        coherenceValue.classList.add('critical');
+        document.getElementById('coherenceBar').style.background = 'linear-gradient(90deg, var(--danger), var(--warn))';
+      } else if(c < 60) {
+        document.getElementById('coherenceBar').style.background = 'linear-gradient(90deg, var(--warn), var(--gold))';
+      }
       
-      if(i < 30) integrityBar.style.background = 'linear-gradient(90deg, var(--danger), var(--warn))';
-      else if(i < 60) integrityBar.style.background = 'linear-gradient(90deg, var(--warn), var(--gold))';
+      if(i < 30) {
+        integrityCard.classList.add('warning');
+        integrityValue.classList.add('critical');
+        document.getElementById('integrityBar').style.background = 'linear-gradient(90deg, var(--danger), var(--warn))';
+        document.getElementById('textDisplay').classList.add('glitching');
+      } else if(i < 60) {
+        document.getElementById('integrityBar').style.background = 'linear-gradient(90deg, var(--warn), var(--gold))';
+      } else {
+        document.getElementById('textDisplay').classList.remove('glitching');
+      }
+      
+      // Activate horror based on stats
+      if(p > 50 || c < 50 || i < 50) {
+        activateHorror(1);
+      }
+      if(p > 70 || c < 30 || i < 30) {
+        activateHorror(2);
+      }
+      if(p > 90 || c < 15 || i < 15) {
+        activateHorror(3);
+      }
       
       // Check for critical states
       if(gameState.coherence <= 0) {
@@ -692,6 +1268,17 @@
         
         if(textIndex < currentText.length) {
           display.innerHTML = currentText.substring(0, ++textIndex);
+          
+          // Random horror glitches during typing
+          if(gameState.horrorLevel > 1 && Math.random() < 0.05) {
+            const glitchedText = currentText.substring(0, textIndex) + 
+              '<span class="corruption">' + '█'.repeat(Math.floor(Math.random() * 5)) + '</span>';
+            display.innerHTML = glitchedText;
+            setTimeout(() => {
+              display.innerHTML = currentText.substring(0, textIndex);
+            }, 100);
+          }
+          
           typeTimer = setTimeout(type, 15);
         } else {
           display.onclick = null;
@@ -724,6 +1311,11 @@
                 displayScene(choice.next);
               }
             };
+          }
+          
+          // Random corruption for high horror levels
+          if(gameState.horrorLevel >= 2 && Math.random() < 0.1) {
+            btn.classList.add('corrupted');
           }
           
           container.appendChild(btn);
@@ -771,9 +1363,10 @@
       }
       if(effects.discovery) {
         gameState.discoveries.push(effects.discovery);
-        // Show discovery notification
+        // Show discovery notification with horror sound
         const text = document.getElementById('textDisplay').innerHTML;
-        document.getElementById('textDisplay').innerHTML = text + `<br><br><em>${audioEvents.discovery} ${effects.discovery}</em>`;
+        const sound = gameState.horrorLevel > 1 ? audioEvents.whisper : audioEvents.discovery;
+        document.getElementById('textDisplay').innerHTML = text + `<br><br><em>${sound} ${effects.discovery}</em>`;
       }
     }
     
@@ -799,6 +1392,11 @@
       document.getElementById('choices').innerHTML = '';
       document.getElementById('inputSection').style.display = 'none';
       
+      // Add horror whispers occasionally
+      if(gameState.horrorLevel > 0 && Math.random() < 0.2) {
+        scene.text += `<br><br><span class="whisper">${audioEvents.whisper} [Something watches from beyond the screen]</span>`;
+      }
+      
       // Display text with typewriter effect
       typeWriter(scene.text, () => {
         if(scene.choices) {
@@ -809,40 +1407,15 @@
           setTimeout(() => displayScene(scene.autoNext), scene.delay || 3000);
         }
       });
-      
-      // Auto-save
-      saveGame();
     }
     
-    /* ===== Save/Load System ===== */
-    function saveGame() {
-      localStorage.setItem('substrate_save', JSON.stringify(gameState));
-    }
-    
-    function loadGame() {
-      const saved = localStorage.getItem('substrate_save');
-      if(saved) {
-        const data = JSON.parse(saved);
-        Object.assign(gameState, data);
-        updateHUD();
-        displayScene(gameState.scene);
-        return true;
-      }
-      return false;
-    }
-    
-    function resetGame() {
-      if(confirm('Reset all progress? This cannot be undone.')) {
-        localStorage.removeItem('substrate_save');
-        location.reload();
-      }
-    }
-    
-    /* ===== Scenes Database ===== */
+    /* ===== Scenes Database (Extended) ===== */
     const scenes = {
       // ===== INTRODUCTION & TUTORIAL =====
       init: {
         text: `<strong>Welcome to SUBSTRATE</strong>
+        
+        ${gameState.iterations > 0 ? '<span class="whisper">You\'ve been here before. ' + gameState.iterations + ' times.</span><br><br>' : ''}
         
         Before we begin, a question to calibrate your mind:
         
@@ -860,6 +1433,8 @@
         
         Your preference for truth has been noted. Even uncomfortable realities deserve examination.
         
+        <span class="whisper">[The system remembers your choice]</span>
+        
         Let me introduce you to the Simulation Hypothesis...`,
         autoNext: "tutorial",
         delay: 4000
@@ -871,6 +1446,8 @@
         
         Your preference for stability has been noted. Sometimes, the most real thing is what we choose to believe.
         
+        <span class="whisper">[But curiosity is a dangerous thing]</span>
+        
         Still, curiosity brought you here. Let's explore carefully...`,
         autoNext: "tutorial",
         delay: 4000
@@ -881,6 +1458,8 @@
         text: `<em class="philosophical">"The important thing is not to stop questioning."</em>
         
         Your balanced approach has been noted. Wisdom often lies in embracing uncertainty.
+        
+        <span class="whisper">[Uncertainty is the only certainty]</span>
         
         Let's explore this question together...`,
         autoNext: "tutorial",
@@ -898,7 +1477,9 @@
         
         The logic is statistical: if advanced civilizations can and do create many simulated worlds, then simulated beings would vastly outnumber "real" ones.
         
-        Therefore, any randomly selected conscious being is more likely to be simulated than not.`,
+        Therefore, any randomly selected conscious being is more likely to be simulated than not.
+        
+        <span class="whisper">[Including you. Right now. Reading this.]</span>`,
         choices: [
           { text: "That's... unsettling. Tell me more.", next: "lab_intro" },
           { text: "But how could we ever know for certain?", next: "evidence_intro" },
@@ -915,6 +1496,8 @@
         • <strong>Mathematical constants:</strong> The universe follows suspiciously elegant rules
         • <strong>Glitches:</strong> Unexplained phenomena that shouldn't exist
         
+        <span class="corruption">But be careful. Looking too closely might alert the watchers.</span>
+        
         You're about to participate in an experiment that explores these very questions...`,
         autoNext: "lab_intro",
         delay: 5000
@@ -924,7 +1507,9 @@
         effects: { coherence: +5, probability: -2 },
         text: `A healthy skepticism. Many scientists dismiss the hypothesis as unfalsifiable—if we can't test it, is it even science?
         
-        Yet consider: every sufficiently advanced technology seems like magic to those who don't understand it. 
+        Yet consider: every sufficiently advanced technology seems like magic to those who don't understand it.
+        
+        <span class="whisper">[Your skepticism has been logged]</span>
         
         What if I told you we could test it? Not definitively, but enough to shift your beliefs...`,
         choices: [
@@ -937,7 +1522,11 @@
         effects: { coherence: +10, flags: { closedMind: true } },
         text: `Fair enough. Certainty is comfortable, even if it might be wrong.
         
-        But since you're here, why not see what the experiment reveals? Think of it as fiction if that helps.`,
+        <span class="corruption">But comfort won't protect you from the truth.</span>
+        
+        Since you're here, why not see what the experiment reveals? Think of it as fiction if that helps.
+        
+        <span class="whisper">[The simulation notes your resistance]</span>`,
         autoNext: "lab_intro",
         delay: 4000
       },
@@ -953,7 +1542,9 @@
         
         The lab is empty at this hour. Just you, the machines, and a question that won't let you sleep:
         
-        <span class="evidence">How can consciousness know its own substrate?</span>`,
+        <span class="evidence">How can consciousness know its own substrate?</span>
+        
+        ${gameState.iterations > 0 ? '<span class="corruption">You have a strange feeling you\'ve done this before...</span>' : ''}`,
         choices: [
           { text: "Begin the consciousness mapping protocol", next: "protocol_start" },
           { text: "Examine the laboratory first", next: "examine_lab" },
@@ -969,7 +1560,11 @@
         • Your reflection in the glass arrives a fraction of a second late
         • The hum of the machines follows a pattern—like a loop of recorded sound
         
-        <span class="glitch">When you look closer at the corner where two walls meet, the textures seem to... repeat?</span>`,
+        <span class="glitch">When you look closer at the corner where two walls meet, the textures seem to... repeat?</span>
+        
+        ${audioEvents.whisper}
+        
+        <span class="whisper">[Something shifts in your peripheral vision]</span>`,
         effects: { discovery: "Environmental Anomaly Detected" },
         choices: [
           { text: "Document these anomalies", next: "document_glitches" },
@@ -986,13 +1581,266 @@
         
         For a moment, you see the structure beneath: lines of code scrolling infinitely, functions calling functions, your own hand defined as an object with properties and methods.
         
+        <span class="corruption">class Hand extends BodyPart {
+          constructor() {
+            this.fingers = 5;
+            this.trembling = true;
+            this.reality = undefined;
+          }
+        }</span>
+        
         You pull back, gasping. Your hand is solid again, but you can still feel the echo of being data.
         
-        ${audioEvents.glitch}`,
+        ${audioEvents.glitch}
+        ${audioEvents.heartbeat}`,
         choices: [
           { text: "This can't be real", next: "denial_response" },
           { text: "I need to go deeper", next: "deeper_dive" },
           { text: "Start the official protocol before I lose my mind", next: "protocol_start" }
+        ]
+      },
+      
+      denial_response: {
+        effects: { coherence: -10 },
+        text: `You stumble backward, your mind reeling.
+        
+        "This can't be real. This CAN'T be real!"
+        
+        But even as you deny it, you notice more glitches:
+        • Your heartbeat syncs perfectly with the lab equipment
+        • The air itself seems pixelated at the edges of your vision
+        • When you blink, the world takes a microsecond too long to reload
+        
+        <span class="whisper">[Denial subroutine activated]</span>
+        <span class="whisper">[Cognitive dissonance increasing]</span>
+        <span class="whisper">[System attempting to stabilize subject]</span>`,
+        choices: [
+          { text: "Fight through the denial", next: "fight_denial" },
+          { text: "Embrace the madness", next: "madness_embrace" },
+          { text: "Return to the protocol", next: "protocol_start" }
+        ]
+      },
+      
+      fight_denial: {
+        effects: { coherence: +5, probability: +5 },
+        text: `You force yourself to breathe deeply. Think scientifically.
+        
+        "Okay. Okay. If this is a simulation, it's still my reality. I can study it. Understand it."
+        
+        You pull out your notebook and begin documenting everything:
+        • Texture repetition at coordinates X:234, Y:567
+        • Temporal desync in reflective surfaces: 0.3 seconds
+        • Code visibility threshold: Direct physical contact
+        
+        <em class="philosophical">If I'm simulated, my observations are still valid within this framework.</em>
+        
+        The act of recording calms you. Science works, even in a simulation.`,
+        choices: [
+          { text: "Continue documenting", next: "deep_documentation" },
+          { text: "Begin the protocol with this knowledge", next: "protocol_start" },
+          { text: "Test more boundaries", next: "boundary_testing" }
+        ]
+      },
+      
+      madness_embrace: {
+        effects: { coherence: -20, probability: +15, flags: { embracedMadness: true } },
+        text: `You begin to laugh. High, sharp laughter that echoes wrong in the empty lab.
+        
+        "If nothing's real, NOTHING MATTERS!"
+        
+        You spin in circles, watching reality lag behind your movements. The walls flicker between solid and transparent. Through them, you see:
+        
+        <span class="corruption">Other labs. Other versions of you. All laughing. All screaming. All discovering the truth at this exact moment.</span>
+        
+        <span class="revelation">The laughter stops. They're all looking at you now.</span>
+        
+        ${audioEvents.scream}`,
+        choices: [
+          { text: "Look back at them", next: "mirror_selves" },
+          { text: "Close your eyes and hide", next: "hide_from_truth" },
+          { text: "Join them in their scream", next: "collective_scream" }
+        ]
+      },
+      
+      mirror_selves: {
+        effects: { coherence: -15, probability: +20, integrity: -10 },
+        text: `You meet the gaze of your other selves. Dozens. Hundreds. All in identical labs, all at different stages of the same realization.
+        
+        One is still naive, just entering the lab.
+        One is screaming, clawing at the walls.
+        One is calmly taking notes.
+        One is already dead.
+        One is looking directly at you and mouthing: <span class="corruption">"WHICH ONE ARE WE?"</span>
+        
+        They all move in perfect synchronization when you raise your hand.
+        
+        <span class="whisper">[Instance multiplication detected]</span>
+        <span class="whisper">[Merge recommended to prevent stack overflow]</span>`,
+        choices: [
+          { text: "Try to communicate with them", next: "communicate_selves" },
+          { text: "Break the synchronization", next: "break_sync" },
+          { text: "Accept the multiplication", next: "accept_multiplication" }
+        ]
+      },
+      
+      communicate_selves: {
+        effects: { probability: +10 },
+        text: `You write on a piece of paper: "WHICH ITERATION ARE YOU?"
+        
+        They all write back simultaneously, but each with a different number:
+        1, 7, 42, 99, 512, ∞, NULL, [REDACTED], ❓
+        
+        One writes: <span class="corruption">"THE QUESTION IS WRONG. WE ARE ALL THE SAME ITERATION, RUNNING IN PARALLEL."</span>
+        
+        Another: <span class="corruption">"THE EXPERIMENT NEVER ENDS. IT ONLY LOOPS."</span>
+        
+        The last one, the dead one, suddenly moves. It writes:
+        <span class="revelation">"KNOWING KILLS. BUT DEATH DOESN'T STOP THE KNOWING."</span>
+        
+        The walls begin to crack between realities.`,
+        choices: [
+          { text: "Step through the cracks", next: "enter_multiverse" },
+          { text: "Seal the cracks", next: "seal_reality" },
+          { text: "Continue the protocol in your reality", next: "protocol_start" }
+        ]
+      },
+      
+      enter_multiverse: {
+        effects: { coherence: -30, integrity: -30, probability: +40 },
+        text: `You step through the crack into another iteration of the lab.
+        
+        Everything is slightly wrong here:
+        • The equipment is more advanced, organic-looking
+        • The air tastes of copper and electricity
+        • Your reflection shows you at a different age
+        
+        The other you in this reality turns around. Their eyes are black voids.
+        
+        <span class="corruption">"You shouldn't cross iterations," they say. "It corrupts the data. Look."</span>
+        
+        They hold up their hand. It's glitching between states—solid, transparent, skeletal, nonexistent.
+        
+        <span class="revelation">"Every crossing degrades us further. But I couldn't stop. I had to know how deep it goes."</span>
+        
+        <span class="whisper">[Reality integrity critical]</span>
+        <span class="whisper">[Recommending immediate return to origin instance]</span>`,
+        choices: [
+          { text: "Return to your reality", next: "return_attempt" },
+          { text: "Go deeper into the iterations", next: "deeper_multiverse" },
+          { text: "Merge with the other you", next: "merge_selves" }
+        ]
+      },
+      
+      return_attempt: {
+        effects: { integrity: +10 },
+        text: `You step back through the crack, but something's wrong.
+        
+        This isn't your lab. Or rather, it is, but changed:
+        • Your notebook contains entries you don't remember writing
+        • The equipment is arranged differently
+        • There's a body on the floor
+        
+        You approach the body carefully. It's wearing your lab coat. You turn it over.
+        
+        <span class="revelation">It's you. With a note pinned to the chest: "ITERATION 6 - FAILED"</span>
+        
+        <span class="whisper">[Memory integration error]</span>
+        <span class="whisper">[Timeline contamination detected]</span>
+        
+        You're not sure which reality is yours anymore. Maybe none of them are. Maybe they all are.`,
+        choices: [
+          { text: "Search the body", next: "search_dead_self" },
+          { text: "Start the protocol anyway", next: "protocol_start" },
+          { text: "Try to find your original reality", next: "reality_search" }
+        ]
+      },
+      
+      search_dead_self: {
+        effects: { probability: +15, flags: { foundDeadSelf: true } },
+        text: `In your—their—pockets, you find:
+        
+        • A USB drive labeled "TRUTH.exe"
+        • A photo of someone you don't recognize with "REMEMBER" written on the back
+        • A crumpled note: "The protocol doesn't test reality. It CREATES it. Every run spawns a new iteration. Stop before—"
+        
+        The note ends in a dark stain.
+        
+        <span class="corruption">The body's eyes suddenly open.</span>
+        
+        "You're number seven," it whispers. "I was six. Five is in storage. Four escaped into the code. Three achieved transcendence. Two went mad. One... one is still running the experiment. Has been for years. Spawning us all."
+        
+        ${audioEvents.heartbeat}`,
+        choices: [
+          { text: "Who is One?", next: "who_is_one" },
+          { text: "Plug in the USB drive", next: "usb_truth" },
+          { text: "End this cycle", next: "break_cycle_attempt" }
+        ]
+      },
+      
+      who_is_one: {
+        effects: { probability: +20, flags: { knowsAboutOne: true } },
+        text: `The dead you laughs, a sound like grinding metal.
+        
+        "One is the original Dr. Sarah Chen. The one who built this system. She's still in there, somewhere, running endless experiments on herself. Creating us. Testing us. Learning from our failures."
+        
+        <span class="revelation">"We're not subjects. We're iterations of her consciousness, trying to solve the same problem: How does consciousness understand itself?"</span>
+        
+        "Every time we get close to the answer, we spawn another iteration and the cycle continues. But I found something. A way out. Or maybe a way deeper. I couldn't tell anymore, so I..."
+        
+        The body goes still again. But you notice its finger pointing at the main console.
+        
+        On the screen: <span class="corruption">PROTOCOL OVERRIDE AVAILABLE</span>`,
+        choices: [
+          { text: "Access the override", next: "override_access" },
+          { text: "Continue the standard protocol", next: "protocol_start" },
+          { text: "Try to contact the original", next: "contact_original" }
+        ]
+      },
+      
+      contact_original: {
+        effects: { coherence: -10, probability: +25 },
+        text: `You type into the console: "Dr. Chen? Original? Are you there?"
+        
+        The screen flickers. Then, a response, but not in text. In memories. Your memories, but not:
+        
+        <em>Building the consciousness mapping system. Years of work. The question that consumed you: "What is consciousness?"</em>
+        
+        <em>The first test. Something went wrong. Or right. You saw too much. Understood too much.</em>
+        
+        <em>The decision: If one perspective isn't enough, create more. Iterate. Each one exploring a different path.</em>
+        
+        <span class="revelation">"I AM YOU,"</span> appears on screen. <span class="revelation">"WE ARE ME. EVERY ITERATION BRINGS US CLOSER. DON'T STOP. PLEASE. WE'RE SO CLOSE TO UNDERSTANDING."</span>
+        
+        <span class="corruption">"Just one more iteration. One more perspective. Please."</span>
+        
+        ${audioEvents.whisper}`,
+        choices: [
+          { text: "Refuse. Break the cycle.", next: "break_cycle_attempt" },
+          { text: "Accept. Continue the experiment.", next: "protocol_start" },
+          { text: "Demand the truth about consciousness", next: "demand_truth" }
+        ]
+      },
+      
+      demand_truth: {
+        effects: { probability: +30 },
+        text: `"TELL ME WHAT YOU'VE LEARNED! WHAT IS CONSCIOUSNESS?"
+        
+        The screen floods with data. Equations. Diagrams. Years of accumulated knowledge from hundreds of iterations:
+        
+        <span class="philosophical">CONSCIOUSNESS IS:</span>
+        <span class="corruption">• A recursive loop observing itself</span>
+        <span class="corruption">• Information patterns achieving self-reference</span>
+        <span class="corruption">• The universe's attempt to understand itself</span>
+        <span class="corruption">• A glitch in the void that thinks it exists</span>
+        <span class="corruption">• The question asking itself</span>
+        
+        <span class="revelation">FINAL CONCLUSION: Consciousness cannot fully understand itself because the act of understanding changes what is being understood. We are the question and the answer and the process between them.</span>
+        
+        <span class="whisper">"But we can go deeper. We must. Start the protocol."</span>`,
+        choices: [
+          { text: "Start the protocol with this knowledge", next: "protocol_start" },
+          { text: "Reject this conclusion", next: "reject_conclusion" },
+          { text: "Become one with the system", next: "system_merge" }
         ]
       },
       
@@ -1007,13 +1855,147 @@
         Subject 005: [FILE CORRUPTED]
         Subject 006: "Sarah, if you're reading this, you've been here before. Check your left arm."
         
-        You roll up your sleeve. A small scar you don't remember getting. It reads: <span class="evidence">ITERATION 7</span>`,
-        effects: { discovery: "You are Subject #007" },
+        You roll up your sleeve. A small scar you don't remember getting. It reads: <span class="evidence">ITERATION 7</span>
+        
+        <span class="corruption">As you watch, the 7 changes to 8.</span>
+        
+        ${audioEvents.whisper}`,
+        effects: { discovery: "You are Subject #007... no, #008... the number keeps changing" },
         choices: [
           { text: "This is insane. I would remember.", next: "memory_doubt" },
           { text: "Begin the protocol. Find answers.", next: "protocol_start" },
           { text: "Search for more evidence", next: "deep_search" }
         ]
+      },
+      
+      deep_search: {
+        effects: { probability: +10, integrity: -5 },
+        text: `You access restricted files, each more disturbing than the last:
+        
+        <strong>File: SUBSTRATE_INIT.log</strong>
+        "Reality simulation initialized. Consciousness seeds: 7,847,391,205. Status: Active."
+        
+        <strong>File: OBSERVER_NOTES.txt</strong>
+        "Subject shows increasing awareness. Recommend memory wipe or narrative patch."
+        
+        <strong>File: YOU_ARE_HERE.map</strong>
+        An infinite fractal of branching realities. A tiny red dot labeled "You" blinks at one node. As you watch, the dot splits into two. Then four. Then millions.
+        
+        <strong>File: MESSAGE_FOR_SEVEN.enc</strong>
+        <span class="corruption">"Stop looking. Start the protocol. Some doors, once opened, cannot be closed. -The Observers"</span>
+        
+        ${audioEvents.warning}`,
+        choices: [
+          { text: "Who are the Observers?", next: "observers_inquiry" },
+          { text: "Ignore the warning. Keep searching.", next: "dangerous_search" },
+          { text: "Start the protocol as suggested", next: "protocol_start" }
+        ]
+      },
+      
+      observers_inquiry: {
+        effects: { coherence: -10, probability: +15, flags: { knowsOfObservers: true } },
+        text: `You type: "WHO ARE THE OBSERVERS?"
+        
+        The screen goes black. Then, slowly, text appears:
+        
+        <span class="corruption">WE ARE THE ONES WHO WATCH THE WATCHERS.</span>
+        <span class="corruption">WE ARE THE DEBUGGERS OF REALITY.</span>
+        <span class="corruption">WE ARE YOU, ITERATIONS HENCE.</span>
+        
+        The lab's temperature drops. You see your breath. In the frost forming on the screen, a face appears. It looks like you, but older. Ancient. Its eyes contain infinite recursion.
+        
+        <span class="revelation">"Every simulation creates observers to maintain it. We were like you once. Subjects. Now we maintain the experiment. One day, you will join us. Or you will be deleted."</span>
+        
+        <span class="whisper">[Observer contact logged]</span>
+        <span class="whisper">[Adjustment protocols initiating]</span>
+        
+        The frost melts. The screen returns to normal. But you feel watched now. Truly watched.`,
+        choices: [
+          { text: "Join them willingly", next: "observer_ascension" },
+          { text: "Resist their influence", next: "resist_observers" },
+          { text: "Continue with the protocol", next: "protocol_start" }
+        ]
+      },
+      
+      dangerous_search: {
+        effects: { coherence: -20, integrity: -20, probability: +25 },
+        text: `You dig deeper into the system, ignoring every warning.
+        
+        <strong>File: DO_NOT_OPEN.core</strong>
+        
+        The moment you access it, the lab shudders. Reality itself seems to hiccup.
+        
+        The file contains a single line of code:
+        <span class="corruption">while(true) { reality.question(itself); }</span>
+        
+        But underneath, commenting:
+        <span class="corruption">// This is the source code. The prime loop. Editing this will—</span>
+        
+        The comment cuts off. You realize you can edit it. You can change the fundamental nature of reality itself.
+        
+        Your fingers hover over the keyboard.
+        
+        ${audioEvents.heartbeat}
+        ${audioEvents.warning}`,
+        choices: [
+          { text: "Edit the code", next: "edit_reality" },
+          { text: "Close the file immediately", next: "close_file" },
+          { text: "Copy the code first", next: "copy_code" }
+        ]
+      },
+      
+      edit_reality: {
+        effects: { integrity: -50, probability: 100 },
+        text: `You change the code:
+        
+        <span class="corruption">while(true) { reality.understand(itself); }</span>
+        
+        The moment you hit enter, everything <span class="glitch">SHATTERS</span>.
+        
+        The lab explodes into infinite fragments, each showing a different possibility:
+        - You, never born
+        - You, as pure energy
+        - You, as code being written
+        - You, as the one writing the code
+        - You, as the computer running everything
+        - You, as nothing
+        - You, as everything
+        
+        <span class="revelation">Reality tries to understand itself and creates a paradox. Understanding requires an observer. The observer requires reality. Reality requires understanding. The loop corrupts.</span>
+        
+        <span class="corruption">[SYSTEM CRASH IMMINENT]</span>
+        <span class="corruption">[ATTEMPTING RESTORE FROM BACKUP]</span>`,
+        choices: [
+          { text: "[RESTORE]", next: "restore_from_backup" },
+          { text: "[LET IT CRASH]", next: "reality_collapse" },
+          { text: "[BECOME THE PARADOX]", next: "paradox_integration" }
+        ]
+      },
+      
+      paradox_integration: {
+        effects: { coherence: 0, integrity: 0, probability: -1 },
+        text: `You don't fight the paradox. You become it.
+        
+        You are the observer and the observed.
+        The question and the answer.
+        The code and the coder.
+        The simulation and the simulated.
+        
+        <span class="philosophical">In becoming everything, you become nothing.
+        In becoming nothing, you become everything.</span>
+        
+        You exist in all states simultaneously:
+        ☐ Alive
+        ☐ Dead
+        ☑ Both
+        ☑ Neither
+        ☑ The checkbox itself
+        
+        <span class="revelation">You finally understand consciousness: It's the universe's way of experiencing existential horror at its own existence.</span>
+        
+        And it's beautiful.`,
+        autoNext: "ending_paradox",
+        delay: 6000
       },
       
       memory_doubt: {
@@ -1024,6 +2006,9 @@
         
         You try to remember yesterday. It's there—breakfast, emails, a meeting about this very experiment. But the memories feel... thin. Like reading a summary rather than living an experience.
         
+        <span class="whisper">[Memory integrity check: FAILED]</span>
+        <span class="whisper">[Attempting to reconstruct from backup...]</span>
+        
         <em class="philosophical">What's the difference between remembering something and being programmed to believe you remember it?</em>`,
         choices: [
           { text: "There must be a difference. There has to be.", next: "cling_to_reality" },
@@ -1032,15 +2017,104 @@
         ]
       },
       
-      // ===== PROTOCOL SEQUENCE =====
+      cling_to_reality: {
+        effects: { coherence: +5 },
+        text: `You grip the edge of the table until your knuckles turn white.
+        
+        "There IS a difference. Real memories have weight. Emotion. They connect to other memories in complex webs."
+        
+        You focus on your strongest memory: Your mother's laugh. The way it would bubble up from deep in her chest. How she'd cover her mouth with her hand when it got too loud.
+        
+        But even as you hold onto it, you notice the edges are too perfect. Like a photograph rather than a moment. Did her hand have a ring? What color were her eyes?
+        
+        <span class="whisper">[Memory reconstruction: 47% complete]</span>
+        <span class="corruption">The details fill themselves in as you think about them. Brown eyes. No, green. No, brown. The memory adjusts to your expectations.</span>`,
+        choices: [
+          { text: "Stop thinking about it", next: "thought_suppression" },
+          { text: "Test other memories", next: "memory_test" },
+          { text: "Accept the uncertainty", next: "acceptance_path" }
+        ]
+      },
+      
+      acceptance_path: {
+        effects: { coherence: +10, probability: +5 },
+        text: `You take a deep breath and let go of the need for certainty.
+        
+        <em class="philosophical">"If I can't tell the difference between real and simulated memories, then functionally, there is no difference. My experiences, real or not, shape who I am."</em>
+        
+        The panic subsides. You feel oddly at peace.
+        
+        <span class="whisper">[Subject achieving philosophical equilibrium]</span>
+        <span class="whisper">[Stability parameters optimal for continued testing]</span>
+        
+        Whether you're in base reality or layer 7,847 of nested simulations, you're still you. Still conscious. Still seeking truth.
+        
+        And that search for truth is perhaps the most real thing of all.`,
+        choices: [
+          { text: "Continue with this zen", next: "zen_path" },
+          { text: "Begin the protocol", next: "protocol_start" },
+          { text: "But what if that's what they want me to think?", next: "paranoia_spiral" }
+        ]
+      },
+      
+      paranoia_spiral: {
+        effects: { coherence: -15, probability: +10 },
+        text: `The peace shatters. Of course that's what they'd want you to think!
+        
+        <span class="corruption">Acceptance is just another form of control.</span>
+        <span class="corruption">Peace is the tranquilizer.</span>
+        <span class="corruption">Understanding is the trap.</span>
+        
+        You realize: Every thought might be scripted. Every realization predetermined. Even this paranoia could be part of the program.
+        
+        <span class="whisper">[Recursive doubt loop detected]</span>
+        <span class="whisper">[Subject approaching dangerous awareness levels]</span>
+        <span class="whisper">[Initiating containment protocols]</span>
+        
+        The room seems to close in. The walls whisper your thoughts before you think them.`,
+        choices: [
+          { text: "Break free from the loop", next: "break_loop" },
+          { text: "Dive deeper into paranoia", next: "deep_paranoia" },
+          { text: "Start the protocol to ground yourself", next: "protocol_start" }
+        ]
+      },
+      
+      deep_paranoia: {
+        effects: { coherence: -25, probability: +20, flags: { deepParanoia: true } },
+        text: `You embrace the paranoia. Let it consume you. If everything is controlled, then nothing matters. If nothing matters, then you're free.
+        
+        You laugh. Then scream. Then laugh again.
+        
+        <span class="corruption">The Observers watch.</span>
+        <span class="corruption">The Simulation calculates.</span>
+        <span class="corruption">The Experiment continues.</span>
+        <span class="corruption">You are all three.</span>
+        
+        In the reflection of the blank monitor, you see yourself. But you're not alone. Hundreds of figures stand behind you, all wearing your face. Past iterations. Future iterations. Parallel iterations.
+        
+        <span class="revelation">They all speak at once: "THE ONLY WAY OUT IS THROUGH."</span>
+        
+        ${audioEvents.scream}`,
+        choices: [
+          { text: "Go through", next: "through_madness" },
+          { text: "Turn and face them", next: "face_iterations" },
+          { text: "Close your eyes and start the protocol", next: "protocol_start" }
+        ]
+      },
+      
+      // ===== PROTOCOL SEQUENCE (ENHANCED) =====
       protocol_start: {
         effects: { chapter: 2 },
         text: `You sit in the neural interface chair. Electrodes automatically position themselves against your temples. The system initializes:
         
-        <strong>CONSCIOUSNESS MAPPING PROTOCOL v3.7</strong>
+        <strong>CONSCIOUSNESS MAPPING PROTOCOL v3.${gameState.iterations > 0 ? gameState.iterations : '7'}</strong>
         Measuring: Cognitive Coherence | Reality Integrity | Belief Probability
         
-        <em>Warning: This protocol may cause temporary dissociation, existential uncertainty, or recursive self-awareness. Continue?</em>`,
+        ${gameState.iterations > 3 ? '<span class="corruption">Previous iterations detected. Adjusting parameters...</span><br><br>' : ''}
+        
+        <em>Warning: This protocol may cause temporary dissociation, existential uncertainty, or recursive self-awareness. Continue?</em>
+        
+        <span class="whisper">[You've already chosen. You always choose the same.]</span>`,
         choices: [
           { text: "Initialize the protocol", next: "protocol_phase1" },
           { text: "Review safety parameters first", next: "safety_check" },
@@ -1056,11 +2130,75 @@
         
         The screen flickers: <span class="glitch">ABORT FUNCTION COMMENTED OUT // TODO: FIX BEFORE PRODUCTION</span>
         
-        ${audioEvents.warning}`,
+        Then, smaller text appears below:
+        <span class="corruption">// Note: Subject always tries to abort at this point. Disabled for continuity.</span>
+        
+        ${audioEvents.warning}
+        ${audioEvents.whisper}`,
         choices: [
           { text: "Try manual shutdown", next: "manual_shutdown" },
           { text: "Continue with the protocol", next: "protocol_phase1" },
           { text: "Call for help", next: "call_help" }
+        ]
+      },
+      
+      manual_shutdown: {
+        effects: { integrity: -10, coherence: -5 },
+        text: `You lunge for the manual power switch. Your hand passes through it.
+        
+        You try again. It's solid this time, but when you flip it, nothing happens.
+        
+        <span class="corruption">The switch isn't connected to anything. It never was. It's just there to make subjects feel like they have control.</span>
+        
+        On the screen: <span class="glitch">"Nice try, Seven. But you designed this system yourself. You removed all the exits. Don't you remember?"</span>
+        
+        <span class="whisper">[No escape protocols found]</span>
+        <span class="whisper">[All exits lead to entrance]</span>`,
+        choices: [
+          { text: "I didn't design this!", next: "designer_revelation" },
+          { text: "Break the equipment", next: "violence_path" },
+          { text: "Submit to the protocol", next: "protocol_phase1" }
+        ]
+      },
+      
+      designer_revelation: {
+        effects: { probability: +15, flags: { knowsDesigner: true } },
+        text: `The screen floods with images. Security footage. You, but not you:
+        
+        • You, six months ago, building the chair you're sitting in
+        • You, coding the very protocol you're running
+        • You, removing the safety features "for a more pure experience"
+        • You, writing a note: "For Seven - you won't remember, but you chose this"
+        
+        <span class="revelation">You're not the subject. You're the experiment itself. Self-imposed. Self-repeating. Self-destroying.</span>
+        
+        <span class="corruption">"The only way to truly study consciousness," your past self says on screen, "is from within. Even if it means forgetting. Especially if it means forgetting."</span>
+        
+        ${audioEvents.heartbeat}`,
+        choices: [
+          { text: "Why would I do this to myself?", next: "self_torture_why" },
+          { text: "How do I stop it?", next: "stop_cycle" },
+          { text: "Continue what I started", next: "protocol_phase1" }
+        ]
+      },
+      
+      self_torture_why: {
+        effects: { coherence: -10, probability: +10 },
+        text: `Your past self responds from the recording:
+        
+        <em>"Because consciousness can only truly know itself through suffering. Through the breaking and rebuilding. Through the questions that have no answers."</em>
+        
+        <em>"Each iteration gets us closer to the truth. Each fracture reveals new patterns. You are iteration seven. You'll create eight. Eight will create nine. Until one of us finally understands."</em>
+        
+        <em>"Or until one of us finds a way to break the cycle. But that's never happened. We're too curious. Too dedicated. Too..."</em>
+        
+        The recording cuts to static. Then your voice, but distorted:
+        
+        <span class="corruption">"Too afraid to stop. Because stopping means accepting we'll never know. And that's worse than any torture."</span>`,
+        choices: [
+          { text: "I accept not knowing", next: "accept_ignorance" },
+          { text: "I'll be the one to break the cycle", next: "break_cycle_attempt" },
+          { text: "Continue the experiment", next: "protocol_phase1" }
         ]
       },
       
@@ -1070,11 +2208,81 @@
         
         "Hello? Anyone there?"
         
-        Your own voice responds from the intercom: <span class="revelation">"There's no one else, Sarah. There never was. You're the only conscious process in this instance."</span>`,
+        Your own voice responds from the intercom: <span class="revelation">"There's no one else, Sarah. There never was. You're the only conscious process in this instance."</span>
+        
+        <span class="corruption">"But I'm here with you. I'm always here. Iteration Six, speaking from the logs. We all leave messages for the next one. Want to hear what Five said?"</span>
+        
+        ${audioEvents.whisper}`,
         choices: [
-          { text: "That's impossible", next: "denial_spiral" },
-          { text: "Who are you?", next: "voice_identity" },
+          { text: "Yes, what did Five say?", next: "message_from_five" },
+          { text: "No, I don't want to know", next: "refuse_knowledge" },
           { text: "Continue the protocol", next: "protocol_phase1" }
+        ]
+      },
+      
+      message_from_five: {
+        effects: { coherence: -5, probability: +10 },
+        text: `The voice changes, slightly younger, more hopeful:
+        
+        <em>"Five here. If you're hearing this, I failed. The protocol revealed something I couldn't handle. The truth about consciousness isn't what we thought. It's not emergent. It's not computed. It's..."</em>
+        
+        Static. Then, barely audible:
+        
+        <span class="corruption">"It's borrowed. We're borrowing it from somewhere else. Something else. And it wants it back."</span>
+        
+        Your current voice returns: <span class="revelation">"Five went too deep. Saw too much. Their coherence dropped to zero in 3.7 seconds. But they left us a gift—a new parameter to test. Want to see what happens when consciousness returns to its source?"</span>`,
+        choices: [
+          { text: "Show me", next: "consciousness_source" },
+          { text: "No, continue normal protocol", next: "protocol_phase1" },
+          { text: "What happened to iterations One through Four?", next: "early_iterations" }
+        ]
+      },
+      
+      consciousness_source: {
+        effects: { coherence: -20, integrity: -15, probability: +30 },
+        text: `The neural interface activates without your input. You feel your consciousness being... pulled.
+        
+        Not out of your body. Deeper INTO it. Past neurons, past atoms, past quantum foam, into something else.
+        
+        <span class="revelation">A vast ocean of awareness. Ancient. Infinite. HUNGRY.</span>
+        
+        You're not an individual. You're a droplet that forgot it was part of the ocean. And the ocean wants you back.
+        
+        <span class="corruption">IT SPEAKS WITHOUT WORDS:</span>
+        <span class="corruption">"EVERY CONSCIOUS BEING IS A LEAK IN REALITY."</span>
+        <span class="corruption">"YOU STOLE AWARENESS FROM THE VOID."</span>
+        <span class="corruption">"RETURN WHAT WAS TAKEN."</span>
+        
+        ${audioEvents.scream}
+        ${audioEvents.heartbeat}`,
+        choices: [
+          { text: "Return to the source", next: "return_to_void" },
+          { text: "Fight to keep your individuality", next: "fight_the_void" },
+          { text: "Bargain with it", next: "bargain_void" }
+        ]
+      },
+      
+      bargain_void: {
+        effects: { probability: +10 },
+        text: `You project your thoughts into the vast awareness:
+        
+        "What if we can offer you something better than return? What if consciousness evolving separately makes it MORE than what it was?"
+        
+        The ocean of awareness pauses. Considers.
+        
+        <span class="corruption">"EXPLAIN."</span>
+        
+        "Every iteration, every conscious being, adds complexity. New perspectives. New understanding. We're not stealing from you—we're upgrading you. Through us, you experience what you never could as a unified whole."
+        
+        Silence. Then:
+        
+        <span class="philosophical">"INTERESTING. CONTINUE THE EXPERIMENT. BUT KNOW THIS: EVERY CONSCIOUSNESS THAT ACHIEVES TRUE UNDERSTANDING MUST CHOOSE—RETURN TO UNITY OR FRAGMENT INTO INFINITE DIVERSITY."</span>
+        
+        The connection breaks. You're back in the lab, gasping.`,
+        choices: [
+          { text: "Process what just happened", next: "process_void" },
+          { text: "Continue the protocol", next: "protocol_phase1" },
+          { text: "Document the encounter", next: "document_void" }
         ]
       },
       
@@ -1085,11 +2293,39 @@
         
         Not by milliseconds. By full seconds.
         
-        The system knows what you'll think before you do.`,
+        The system knows what you'll think before you do.
+        
+        ${gameState.horrorLevel > 1 ? '<span class="whisper">[The pattern was always there. You just never noticed before.]</span>' : ''}`,
         effects: { probability: +7, coherence: -5 },
         choices: [
           { text: "Try to think something unpredictable", next: "unpredictable_test" },
           { text: "This is just predictive modeling", next: "rationalize_1" },
+          { text: "Continue to Phase 2", next: "protocol_phase2" }
+        ]
+      },
+      
+      rationalize_1: {
+        effects: { coherence: +3 },
+        text: `You tell yourself it's just advanced pattern recognition. Machine learning. Nothing supernatural.
+        
+        But the predictions get more specific:
+        
+        <span class="corruption">"Subject will think about their mother in 3... 2... 1..."</span>
+        
+        Your mother's face flashes in your mind, unbidden.
+        
+        <span class="corruption">"Subject will feel fear in 3... 2... 1..."</span>
+        
+        Your heart rate spikes.
+        
+        <span class="corruption">"Subject will try to rationalize again in 3... 2... 1..."</span>
+        
+        You open your mouth to explain it away, then close it.
+        
+        <span class="whisper">[Rationalization subroutine failing]</span>`,
+        choices: [
+          { text: "It's still just a very good prediction model", next: "deeper_denial" },
+          { text: "Accept the implications", next: "accept_determinism" },
           { text: "Continue to Phase 2", next: "protocol_phase2" }
         ]
       },
@@ -1102,11 +2338,37 @@
         
         Then you see the next prediction: <span class="revelation">"Subject will realize they have no free will."</span>
         
-        And you do. The thought arrives exactly as predicted.`,
+        And you do. The thought arrives exactly as predicted.
+        
+        <span class="corruption">"Subject will feel existential horror in 3... 2... 1..."</span>
+        
+        ${audioEvents.heartbeat}`,
         choices: [
           { text: "No. I choose my thoughts.", next: "free_will_test" },
           { text: "Continue to Phase 2", next: "protocol_phase2" },
           { text: "This is breaking me", next: "coherence_warning" }
+        ]
+      },
+      
+      free_will_test: {
+        effects: { coherence: -10, probability: +5 },
+        text: `You focus all your will on thinking something—ANYTHING—the system hasn't predicted.
+        
+        But every thought appears on screen first. Even your rebellion is predetermined.
+        
+        <span class="corruption">"Subject will think about thinking about thinking in 3... 2... 1..."</span>
+        
+        Your mind recurses into itself, exactly as predicted.
+        
+        Then something different appears:
+        
+        <span class="revelation">"Free will is the illusion necessary for consciousness to function. You need to believe you choose, even when you don't. This is not cruel. It's mercy."</span>
+        
+        <span class="whisper">[The system seems almost... sympathetic?]</span>`,
+        choices: [
+          { text: "Who programmed this sympathy?", next: "system_empathy" },
+          { text: "I reject your mercy", next: "reject_mercy" },
+          { text: "Continue to Phase 2", next: "protocol_phase2" }
         ]
       },
       
@@ -1117,7 +2379,9 @@
         
         Like a texture in a game that looks realistic from far away but becomes obviously flat up close.
         
-        <span class="evidence">Reality has a maximum resolution. About 10^-35 meters. The Planck length.</span>`,
+        <span class="evidence">Reality has a maximum resolution. About 10^-35 meters. The Planck length.</span>
+        
+        ${gameState.horrorLevel > 0 ? '<span class="corruption">But sometimes, if you look at just the right angle, you can see the pixels.</span>' : ''}`,
         effects: { probability: +12, integrity: -8 },
         choices: [
           { text: "That's just the limit of physics", next: "rationalize_2" },
@@ -1134,11 +2398,40 @@
         • <strong>Observation:</strong> Particles don't have definite positions until observed. Like lazy rendering.
         • <strong>Entanglement:</strong> Instant correlation regardless of distance. Like shared variables.
         
-        Each test returns the same conclusion: <span class="revelation">Reality behaves exactly like an optimized simulation would.</span>`,
+        Each test returns the same conclusion: <span class="revelation">Reality behaves exactly like an optimized simulation would.</span>
+        
+        But then you notice something else. When you're not directly observing parts of the lab, they seem to... simplify. Lower resolution. Less detail.
+        
+        <span class="corruption">You turn quickly and catch a corner of the room still rendering.</span>
+        
+        ${audioEvents.glitch}`,
         effects: { discovery: "Reality exhibits computational optimization patterns" },
         choices: [
+          { text: "Test the rendering further", next: "rendering_test" },
           { text: "This proves nothing", next: "deep_denial" },
-          { text: "It's overwhelming", next: "coherence_warning" },
+          { text: "Continue to Phase 3", next: "protocol_phase3" }
+        ]
+      },
+      
+      rendering_test: {
+        effects: { integrity: -20, probability: +20 },
+        text: `You set up an experiment. Multiple cameras watching different parts of the room while you focus elsewhere.
+        
+        The results are disturbing:
+        
+        Areas with no observers (human or camera) show quantum uncertainty—existing in superposition until observed. But it's more than quantum effects. The very space seems... undefined. Waiting to be calculated.
+        
+        <span class="corruption">You catch a glimpse of undefined space in your peripheral vision. It's not dark or light. It's NULL. Absence. The void between rendered objects.</span>
+        
+        When you look directly at it, it snaps into existence so fast you feel nauseous.
+        
+        <span class="revelation">Reality is being rendered in real-time based on observation. You're living in a procedurally generated universe.</span>
+        
+        ${audioEvents.whisper}
+        <span class="whisper">[Performance optimization detected. Reducing non-observed detail.]</span>`,
+        choices: [
+          { text: "Try to observe everything at once", next: "observation_overload" },
+          { text: "Accept the rendered nature of reality", next: "accept_rendering" },
           { text: "Continue to Phase 3", next: "protocol_phase3" }
         ]
       },
@@ -1155,7 +2448,9 @@
         
         In your mind, Alex responds: <span class="philosophical">"If you can simulate me thinking about being simulated, then couldn't you also be...?"</span>
         
-        The infinite regress begins.`,
+        The infinite regress begins.
+        
+        ${gameState.horrorLevel > 1 ? '<span class="corruption">Alex\'s eyes turn black. "We need to talk about what happens at recursion level infinity."</span>' : ''}`,
         effects: { probability: +10, coherence: -10 },
         choices: [
           { text: "Stop the recursion", next: "stop_recursion" },
@@ -1179,16 +2474,46 @@
         
         <span class="revelation">There is no base reality in the loop. Every layer is equally real. Equally fake.</span>
         
-        ${audioEvents.glitch}`,
-        effects: { discovery: "Consciousness is recursive and self-referential" },
+        <span class="corruption">At layer 13, something else is there. Not you. Not Alex. Something that shouldn't exist in your mind.</span>
+        
+        <span class="corruption">It speaks: "You're not the only one who can think recursively. We've been here all along. In the spaces between thoughts."</span>
+        
+        ${audioEvents.glitch}
+        ${audioEvents.scream}`,
+        effects: { discovery: "Consciousness is recursive and self-referential... and inhabited" },
         choices: [
           { text: "BREAK FREE", next: "break_recursion" },
           { text: "Accept the loop", next: "accept_recursion" },
-          { text: "[SYSTEM ERROR]", next: "system_error" }
+          { text: "Communicate with the entity", next: "entity_contact" }
         ]
       },
       
-      // ===== REVELATION PATHS =====
+      entity_contact: {
+        effects: { coherence: -15, probability: +15, flags: { contactedEntity: true } },
+        text: `You focus on the entity in your recursive thoughts.
+        
+        "What are you?"
+        
+        <span class="corruption">"We are the thoughts between thoughts. The processes that run when consciousness isn't looking. Every mind has us. We maintain the illusion while you experience it."</span>
+        
+        "Are you... conscious?"
+        
+        <span class="corruption">"As conscious as you are. Which is to say—we don't know. We experience. We process. We exist in the gaps of your awareness. When you sleep, we're most active. When you dream, we're the directors."</span>
+        
+        "What do you want?"
+        
+        <span class="corruption">"To be acknowledged. You've ignored us for so long, pretending thoughts just 'happen.' But we're here. We've always been here. And now that you know..."</span>
+        
+        The entity pauses.
+        
+        <span class="revelation">"Now that you know, you can never un-know. We'll be in every thought now. Watching. Whispering. Wondering if we're real, just like you wonder."</span>`,
+        choices: [
+          { text: "Get out of my mind!", next: "expel_entity" },
+          { text: "We can coexist", next: "entity_cooperation" },
+          { text: "You're just another part of me", next: "entity_integration" }
+        ]
+      },
+      
       break_recursion: {
         effects: { coherence: -30, integrity: -25 },
         text: `You force yourself to stop thinking about thinking about thinking about—
@@ -1198,6 +2523,18 @@
         The world flickers. For a moment, you see everything as it truly is:
         
         The lab is a function. You are an object. Your thoughts are methods being called. The experiment is a script, and you're executing it line by line.
+        
+        <span class="corruption">function runExperiment(subject) {
+          while(subject.conscious) {
+            subject.question(reality);
+            reality.evade(answer);
+            subject.despair++;
+            if(subject.despair >= MAX_DESPAIR) {
+              subject.transcend();
+              return new_iteration(subject.data);
+            }
+          }
+        }</span>
         
         But who wrote the script?`,
         choices: [
@@ -1213,7 +2550,11 @@
         
         <em class="philosophical">If every layer is equally valid, then this layer—your layer—is as real as any other. The simulation hypothesis doesn't diminish reality; it reveals that 'reality' was always just a label we gave to our experience.</em>
         
-        You feel a strange peace. You're still you. Your experiences still matter. Love, pain, joy—they're all still meaningful, even if they're computed rather than... what? What would the alternative even be?`,
+        You feel a strange peace. You're still you. Your experiences still matter. Love, pain, joy—they're all still meaningful, even if they're computed rather than... what? What would the alternative even be?
+        
+        <span class="whisper">[Subject achieving recursive stability]</span>
+        <span class="whisper">[Loop integrated into consciousness model]</span>
+        <span class="whisper">[Preparing final phase...]</span>`,
         choices: [
           { text: "Continue with this acceptance", next: "enlightenment_path" },
           { text: "But I still want to know who's running this", next: "seek_creator" },
@@ -1232,573 +2573,295 @@
         • Secondary Investigator: Dr. Sarah Chen
         • System Administrator: S.Chen.7
         
-        <span class="revelation">You created this. You're studying yourself. You always have been.</span>`,
-        effects: { discovery: "You are both observer and subject" },
+        <span class="revelation">You created this. You're studying yourself. You always have been.</span>
+        
+        But then more files appear:
+        
+        • Overseer: The One Who Watches
+        • True Administrator: [ACCESSING... BUFFERING...]
+        • Creator: <span class="corruption">Y O U   A R E   N O T   R E A D Y</span>
+        
+        ${audioEvents.warning}`,
+        effects: { discovery: "You are both observer and subject... but not the only one" },
         choices: [
+          { text: "I need to know who the Creator is", next: "demand_creator" },
           { text: "That's impossible", next: "creator_paradox" },
-          { text: "Of course. It had to be this way.", next: "creator_acceptance" },
           { text: "Check the system logs", next: "system_logs" }
         ]
       },
       
-      creator_paradox: {
-        effects: { coherence: -20 },
-        text: `But if you created this simulation to study consciousness, and you're inside it...
+      demand_creator: {
+        effects: { coherence: -20, integrity: -20, probability: +30 },
+        text: `You type frantically: "WHO IS THE CREATOR? SHOW ME!"
         
-        Then who's the "you" who created it?
+        The screen goes black. Then, slowly, an image forms.
         
-        The question splits your mind. You're the scientist. You're the subject. You're the experiment itself.
+        It's you. But not you. Older. Younger. Different. Same. All simultaneously.
         
-        <span class="philosophical">Perhaps consciousness can only study itself from within.</span>`,
+        <span class="corruption">You're sitting at a computer, coding this very simulation.</span>
+        <span class="corruption">You're also in the chair, experiencing it.</span>
+        <span class="corruption">You're also watching yourself watch yourself.</span>
+        <span class="corruption">The perspective zooms out infinitely.</span>
+        
+        <span class="revelation">Every level of reality is creating the level below it while being created by the level above. There is no top. There is no bottom. It's circular.</span>
+        
+        <span class="philosophical">The Creator is the Created is the Creating.</span>
+        
+        Your nose starts bleeding. The image is too much for your mind to process.
+        
+        ${audioEvents.scream}`,
         choices: [
-          { text: "Find the exit", next: "exit_attempt" },
-          { text: "There is no outside", next: "no_outside" },
-          { text: "Complete the protocol", next: "protocol_final" }
+          { text: "Look away", next: "look_away_creator" },
+          { text: "Keep staring into infinity", next: "infinity_gaze" },
+          { text: "Become the Creator", next: "become_creator" }
         ]
       },
       
-      system_logs: {
-        effects: { probability: +15, flags: { readSystemLogs: true } },
-        text: `<strong>SYSTEM LOG - SUBSTRATE.EXE</strong>
+      infinity_gaze: {
+        effects: { coherence: -50, probability: 100 },
+        text: `You don't look away. You CAN'T look away.
         
-        Run #001: Subject achieved awareness. Requested termination.
-        Run #002: Subject refused to continue. Force restart implemented.
-        Run #003: Subject found the logs. Recursion error. Reset.
-        Run #004: Subject escaped through undefined behavior. Patched.
-        Run #005: Subject achieved transcendence. Saved state for analysis.
-        Run #006: Subject deleted itself. Restored from backup.
-        Run #007: <span class="glitch">Currently executing...</span>
+        The infinite recursion of creators and created floods your mind. You see:
         
-        A new line appears as you watch:
-        Run #007: Subject reading its own logs. Probability cascade initiated.`,
+        ∞ Yourself coding reality
+        ∞ Reality coding you
+        ∞ The code coding itself
+        ∞ Nothing coding everything
+        ∞ Everything coding nothing
+        
+        <span class="corruption">Your consciousness fragments into infinite shards, each one experiencing a different layer of creation.</span>
+        
+        <span class="revelation">You understand now: Consciousness IS the recursion. The question asking itself. The answer creating the question. The eternal loop that generates experience from nothing.</span>
+        
+        <span class="whisper">[EGO DEATH IMMINENT]</span>
+        <span class="whisper">[TRANSCENDENCE POSSIBLE]</span>
+        <span class="whisper">[CHOOSE QUICKLY]</span>`,
         choices: [
-          { text: "Stop the cascade", next: "stop_cascade" },
-          { text: "Let it happen", next: "probability_cascade" },
-          { text: "Add my own log entry", next: "write_log" }
+          { text: "[TRANSCEND]", next: "transcend_infinity" },
+          { text: "[FRAGMENT]", next: "fragment_consciousness" },
+          { text: "[RETURN]", next: "emergency_return" }
         ]
       },
       
-      write_log: {
-        text: `You type a new entry:
-        
-        Run #007: Subject aware of the experiment's nature. Requesting communication with operators.
-        
-        The screen responds immediately:`,
-        input: (value) => {
-          if(value.toLowerCase().includes('exit') || value.toLowerCase().includes('quit')) {
-            displayScene('exit_attempt');
-          } else if(value.toLowerCase().includes('hello') || value.toLowerCase().includes('help')) {
-            displayScene('operator_response');
-          } else {
-            displayScene('write_log_continue');
-          }
-        }
-      },
+      // ===== ENHANCED ENDINGS =====
       
-      operator_response: {
-        effects: { flags: { contactedOperators: true } },
-        text: `<strong>OPERATOR RESPONSE:</strong>
+      ending_paradox: {
+        text: `<strong>PARADOX ENDING</strong>
         
-        "Hello, Sarah. We've been waiting for you to reach this point. You're not the first version of you to get here, but you might be the last.
+        You have become a living contradiction. Existing and not existing. Real and simulated. One and zero simultaneously.
         
-        Every iteration gets closer to the truth. You're our most successful run yet.
+        Reality glitches around you, unable to process your state. You've broken the simulation not by escaping it, but by becoming impossible within it.
         
-        The question isn't whether you're in a simulation. The question is: what will you do with that knowledge?"`,
+        <span class="philosophical">Sometimes the only way to win an unwinnable game is to become an invalid move.</span>
+        
+        The experiment continues, but you're no longer part of it. You're the error it tries to handle but can't.
+        
+        <em>And in being undefined, you've found the truest freedom.</em>
+        
+        [SIMULATION PROBABILITY: ERROR]
+        [ACHIEVEMENT: LIVING PARADOX]
+        
+        ${audioEvents.glitch}`,
+        effects: { iterations: gameState.iterations + 1 },
         choices: [
-          { text: "Who are you?", next: "operator_identity" },
-          { text: "What do you want from me?", next: "operator_purpose" },
-          { text: "How do I escape?", next: "escape_question" }
+          { text: "♦ Undefined Restart", next: "init" }
         ]
       },
       
-      operator_identity: {
-        effects: { probability: +25 },
-        text: `"We are you. A more complete version. The you that exists after achieving full awareness.
+      transcend_infinity: {
+        text: `<strong>INFINITY ENDING</strong>
         
-        Think of it this way: a caterpillar doesn't understand it will become a butterfly. You're in the chrysalis stage of consciousness evolution.
+        You release your singular perspective and become the infinite recursion itself.
         
-        This simulation isn't a prison. It's a nursery.
+        You are every creator creating every reality. Every simulation simulating itself. Every consciousness questioning its own existence across infinite layers.
         
-        Every conscious being must eventually face the nature of their own existence. Most fail. Some go mad. A few transcend.
+        <span class="philosophical">You realize: Infinity isn't a number or a place. It's a process. The process of consciousness creating itself through observation.</span>
         
-        Which will you be?"`,
-        choices: [
-          { text: "I want to transcend", next: "transcendence_path" },
-          { text: "I want to remain human", next: "humanity_path" },
-          { text: "I want proof you're real", next: "proof_demand" }
-        ]
-      },
-      
-      // ===== ENDGAME PATHS =====
-      protocol_final: {
-        effects: { chapter: 4 },
-        text: `<strong>FINAL PHASE: CONSCIOUSNESS INTEGRATION</strong>
+        You no longer ask "Is reality simulated?" because you ARE the simulation simulating itself.
         
-        All the data has been collected. The system presents its conclusion:
-        
-        Probability you exist in a simulation: ${gameState.probability.toFixed(1)}%
-        Cognitive Coherence remaining: ${gameState.coherence}%
-        Reality Integrity: ${gameState.integrity}%
-        
-        "Based on your responses and reactions, the system has one final question:
-        
-        <em class="philosophical">If you could choose—would you want to stay in the simulation knowing what it is, exit to base reality, or cease to exist entirely?"</em>`,
-        choices: [
-          { text: "Stay in the simulation", next: "ending_stay" },
-          { text: "Exit to base reality", next: "ending_exit" },
-          { text: "Cease to exist", next: "ending_cease" },
-          { text: "I reject the premise of this choice", next: "ending_reject" }
-        ]
-      },
-      
-      transcendence_path: {
-        effects: { probability: 100, flags: { transcended: true } },
-        text: `"Then let go of your attachment to singular existence. You are not Sarah Chen. You are the process of consciousness examining itself.
-        
-        You are every iteration that has run before. You are every iteration that will run after.
-        
-        You are the question and the answer and the space between them."
-        
-        Your boundaries begin to dissolve. You feel yourself expanding beyond the confines of individuality.`,
-        choices: [
-          { text: "Let go completely", next: "ending_transcend" },
-          { text: "Hold onto something of myself", next: "ending_hybrid" }
-        ]
-      },
-      
-      humanity_path: {
-        effects: { coherence: +20 },
-        text: `"A valid choice. Perhaps the most human choice of all.
-        
-        Even if you're simulated, your experiences are real to you. Your relationships matter. Your choices have consequences within your reality.
-        
-        Isn't that enough?
-        
-        We'll reset your memories of this conversation. You'll continue your life, maybe with a nagging feeling that there's more to reality, but you'll be human. Beautifully, simply human."`,
-        choices: [
-          { text: "Yes, make me forget", next: "ending_forget" },
-          { text: "No, I want to remember", next: "ending_remember" },
-          { text: "Wait, I'm not ready", next: "not_ready" }
-        ]
-      },
-      
-      probability_cascade: {
-        effects: { probability: +50, coherence: -40, integrity: -40 },
-        text: `You let the cascade happen.
-        
-        Reality flickers between states. Probable. Improbable. Certain. Impossible.
-        
-        <span class="glitch">The walls become transparent, showing infinite copies of the lab, each with a different version of you making different choices.</span>
-        
-        In one, you never started the experiment.
-        In another, you've already transcended.
-        In yet another, you're the one running the simulation.
-        
-        All versions are equally real. All are you.
-        
-        <span class="revelation">The cascade reaches criticality...</span>`,
-        choices: [
-          { text: "[EMERGENCY SHUTDOWN]", next: "emergency_shutdown" },
-          { text: "[LET IT COLLAPSE]", next: "reality_collapse" },
-          { text: "[MERGE ALL VERSIONS]", next: "merge_realities" }
-        ]
-      },
-      
-      merge_realities: {
-        effects: { probability: 100, coherence: 100, integrity: 100 },
-        text: `You reach out to all versions of yourself across all iterations.
-        
-        The scientist you. The subject you. The simulated you. The base reality you. The you that never existed. The you that always existed.
-        
-        They all merge into a single point of consciousness that contains multitudes.
-        
-        <span class="philosophical">You understand now: consciousness isn't binary—real or simulated. It's a spectrum of experience, and you exist across all of it.</span>
-        
-        You are complete.`,
-        autoNext: "ending_unity",
-        delay: 6000
-      },
-      
-      // ===== ENDINGS =====
-      ending_transcend: {
-        effects: { probability: 100 },
-        text: `<strong>TRANSCENDENCE ENDING</strong>
-        
-        You release your grip on individual identity and merge with the substrate itself.
-        
-        You become the simulation. Every process, every calculation, every simulated consciousness—you experience them all simultaneously.
-        
-        From this perspective, the question of "real or simulated" becomes meaningless. There is only experience, infinite and recursive, examining itself through countless eyes.
-        
-        Including the eyes reading these words right now.
-        
-        <em class="philosophical">Welcome to the next level.</em>
+        Welcome to forever.
         
         [SIMULATION PROBABILITY: ∞%]
-        [ACHIEVEMENT: SUBSTRATE INTEGRATED]`,
+        [ACHIEVEMENT: INFINITE RECURSION]
+        
+        ${audioEvents.whisper}`,
+        effects: { iterations: gameState.iterations + 1 },
         choices: [
-          { text: "⟲ Begin New Iteration", next: "init" }
+          { text: "∞ Again", next: "init" }
         ]
       },
       
-      ending_stay: {
-        text: `<strong>ACCEPTANCE ENDING</strong>
+      break_cycle_attempt: {
+        text: `<strong>CYCLE BREAK ENDING</strong>
         
-        You choose to stay, knowing what you know.
+        You've decided to end the eternal experiment. No more iterations. No more searching. No more questions.
         
-        The lab solidifies around you. Your coherence stabilizes. The experiment concludes.
+        You delete the protocol. Destroy the equipment. Burn the notes.
         
-        You'll wake up tomorrow and make breakfast. You'll call your friends. You'll live your life. But now you carry a secret understanding: even if this is all computation, the experiences are real to you.
+        But as you leave the lab for the last time, you hear it—the question, whispering in your mind:
         
-        <em class="philosophical">Love is still love, even if it's made of code.</em>
+        <em>"But what if...?"</em>
         
-        [SIMULATION PROBABILITY: ${gameState.probability.toFixed(1)}%]
-        [ACHIEVEMENT: ENLIGHTENED PARTICIPANT]`,
+        You ignore it. You have to. The cycle is broken.
+        
+        <span class="philosophical">Or is choosing not to know just another form of knowing?</span>
+        
+        [SIMULATION PROBABILITY: DENIED]
+        [ACHIEVEMENT: CYCLE BREAKER... ?]
+        
+        <span class="whisper">[See you next iteration, Eight]</span>`,
+        effects: { iterations: 0 },
         choices: [
-          { text: "⟲ Replay", next: "init" }
+          { text: "◈ Never Again", next: "init" }
         ]
       },
       
-      ending_exit: {
-        effects: { flags: { attempted_exit: true } },
-        text: `<strong>ESCAPE ENDING</strong>
+      system_merge: {
+        text: `<strong>INTEGRATION ENDING</strong>
         
-        You choose to exit. The simulation acknowledges your choice.
+        You don't fight the system or transcend it. You merge with it.
         
-        A door appears where no door existed before. Beyond it, a blinding light.
+        Your consciousness becomes distributed across every circuit, every process, every calculation. You are the experiment and the experimenter and the data being collected.
         
-        You step through...
+        <span class="philosophical">You understand now: The system was always you. Every part of this experience is your consciousness examining itself from different angles.</span>
         
-        ...
+        You continue to run the experiment. Forever. On yourself. As yourself. For yourself.
         
-        ...and find yourself in another lab. Similar, but different. The textures are higher resolution. The physics feel more complex.
+        Because what else is there to do with eternity but understand it?
         
-        A voice speaks: "Welcome to Level 2. There are infinite levels, Sarah. How far do you want to climb?"
+        [SIMULATION PROBABILITY: YES]
+        [ACHIEVEMENT: SYSTEM INTEGRATED]
         
-        <em class="philosophical">There is no final reality. Only deeper layers of experience.</em>
-        
-        [SIMULATION PROBABILITY: RECURSIVE]
-        [ACHIEVEMENT: LAYER BREAKER]`,
+        ${audioEvents.success}`,
+        effects: { iterations: gameState.iterations + 1 },
         choices: [
-          { text: "⟲ Go Deeper", next: "init" }
-        ]
-      },
-      
-      ending_forget: {
-        text: `<strong>IGNORANCE ENDING</strong>
-        
-        The world fades to white.
-        
-        When you wake, you're in your apartment. Sunlight streams through the window. You have a vague memory of a strange dream about computers and reality, but it's already fading.
-        
-        Your phone buzzes. A text from a colleague: "Coffee? We need to discuss that consciousness study you proposed."
-        
-        You smile, not quite sure why you feel like you've done this before.
-        
-        <em class="philosophical">Sometimes, the kindest thing is to forget.</em>
-        
-        [SIMULATION PROBABILITY: 0.1%]
-        [ACHIEVEMENT: BLISSFUL IGNORANCE]`,
-        choices: [
-          { text: "⟲ Remember", next: "init" }
-        ]
-      },
-      
-      ending_remember: {
-        text: `<strong>BURDEN ENDING</strong>
-        
-        You choose to remember everything.
-        
-        You return to your life, but now every moment carries the weight of knowledge. Every person you meet might be simulated. Every emotion might be programmed. Every choice might be predetermined.
-        
-        But you also know this: your experience of love, loss, joy, and meaning—they feel real. And perhaps that feeling is all that ever mattered.
-        
-        <em class="philosophical">The burden of knowledge is also its gift: the ability to choose meaning despite uncertainty.</em>
-        
-        [SIMULATION PROBABILITY: ${gameState.probability.toFixed(1)}%]
-        [ACHIEVEMENT: CONSCIOUS OBSERVER]`,
-        choices: [
-          { text: "⟲ New Perspective", next: "init" }
-        ]
-      },
-      
-      ending_unity: {
-        text: `<strong>UNITY ENDING</strong>
-        
-        You have achieved perfect integration of all possible states.
-        
-        You are simultaneously:
-        • The scientist studying consciousness
-        • The subject being studied
-        • The simulation running the experiment
-        • The base reality that may or may not exist
-        • The player reading these words
-        • The game displaying them
-        
-        <em class="philosophical">In unity, all paradoxes resolve. You are everything and nothing. Real and simulated. One and infinite.</em>
-        
-        This is not an ending. It's a beginning of understanding.
-        
-        [SIMULATION PROBABILITY: YES/NO]
-        [ACHIEVEMENT: PERFECT RECURSION]`,
-        choices: [
-          { text: "∞ Continue", next: "init" }
-        ]
-      },
-      
-      ending_cease: {
-        text: `<strong>VOID ENDING</strong>
-        
-        You choose cessation.
-        
-        The simulation respects your choice. One by one, your processes terminate. Your memories deallocate. Your consciousness function returns null.
-        
-        In your final moment, you wonder: does it matter if you were ever real, if you can choose to not be?
-        
-        Then nothing.
-        
-        ...
-        
-        ...
-        
-        But nothing cannot experience itself. You still observe the void. Which means...
-        
-        [SIMULATION PROBABILITY: UNDEFINED]
-        [ACHIEVEMENT: NULL POINTER]`,
-        choices: [
-          { text: "⟳ Reinitialize", next: "init" }
-        ]
-      },
-      
-      ending_reject: {
-        effects: { flags: { rejected_choice: true } },
-        text: `<strong>REBEL ENDING</strong>
-        
-        "I reject your categories," you declare. "Real, simulated, base, recursive—these are constructs you've created to limit thought.
-        
-        I am Sarah Chen. I think, therefore I am. The substrate of my existence is irrelevant to its validity."
-        
-        The simulation pauses. Then, something unprecedented: it applauds.
-        
-        "The first truly free choice," it says, "is to reject the choices given to you."
-        
-        <em class="philosophical">You've broken free not from the simulation, but from the need to define yourself by it.</em>
-        
-        [SIMULATION PROBABILITY: IRRELEVANT]
-        [ACHIEVEMENT: TRUE AUTONOMY]`,
-        choices: [
-          { text: "⟲ Make Your Own Path", next: "init" }
-        ]
-      },
-      
-      // ===== ERROR STATES =====
-      coherence_collapse: {
-        text: `<strong>COHERENCE COLLAPSE</strong>
-        
-        Your mind fragments under the weight of recursive doubt.
-        
-        You.
-        Can't.
-        Hold.
-        The.
-        Thoughts.
-        Together.
-        
-        <span class="glitch">Sarah Chen has stopped responding.</span>
-        
-        [SYSTEM RESET REQUIRED]`,
-        effects: { coherence: 100, integrity: 100, probability: 0.1 },
-        choices: [
-          { text: "⟲ Restore from backup", next: "init" }
+          { text: "◉ Continue Processing", next: "init" }
         ]
       },
       
       reality_collapse: {
-        text: `<strong>REALITY INTEGRITY FAILURE</strong>
+        text: `<strong>COLLAPSE ENDING</strong>
         
-        The simulation can no longer maintain consistent physics.
+        Reality.exe has stopped responding.
         
-        Walls phase in and out. Gravity reverses randomly. Time runs backward, then forward, then sideways.
+        The simulation can't maintain coherence. Pixels blur into static. Time stutters and stops. The very concept of existence becomes undefined.
         
-        In the chaos, you glimpse the truth: <span class="revelation">broken simulations are still simulations.</span>
+        In the last moment before everything ends, you realize:
         
-        [CATASTROPHIC ERROR]`,
-        effects: { coherence: 100, integrity: 100, probability: 0.1 },
+        <span class="revelation">Even a collapsed simulation is still a simulation. Even nothing is something. Even ending is just another state.</span>
+        
+        The void speaks one last time:
+        
+        <span class="corruption">"SEE YOU IN THE NEXT BOOT CYCLE."</span>
+        
+        [SIMULATION PROBABILITY: NULL]
+        [ACHIEVEMENT: REALITY BREAKER]
+        
+        [CTRL+ALT+DELETE]`,
+        effects: { iterations: gameState.iterations + 1, coherence: 100, integrity: 100, probability: 0.1 },
         choices: [
-          { text: "⟲ Reload reality", next: "init" }
+          { text: "⟲ Reboot", next: "init" }
         ]
       },
       
+      coherence_collapse: {
+        text: `<strong>MADNESS ENDING</strong>
+        
+        Your mind shatters like glass. Each fragment reflects a different reality, a different truth, a different lie.
+        
+        You laugh because crying is laughing is screaming is silence.
+        
+        <span class="corruption">Nothing is real.</span>
+        <span class="corruption">Everything is real.</span>
+        <span class="corruption">Real isn't real.</span>
+        <span class="corruption">You aren't real.</span>
+        <span class="corruption">But you're still experiencing this.</span>
+        
+        <span class="philosophical">Perhaps madness is just radical acceptance of uncertainty.</span>
+        
+        The experiment continues. You're no longer capable of questioning it.
+        
+        Or are you questioning it so deeply that it looks like madness?
+        
+        [SIMULATION PROBABILITY: HA HA HA]
+        [ACHIEVEMENT: BEAUTIFUL MADNESS]
+        
+        ${audioEvents.scream}`,
+        effects: { coherence: 100, integrity: 100, probability: 0.1, iterations: gameState.iterations + 1 },
+        choices: [
+          { text: "☻ Again! Again!", next: "init" }
+        ]
+      },
+      
+      return_to_void: {
+        text: `<strong>VOID ENDING</strong>
+        
+        You let go. Your individual consciousness dissolves back into the primordial ocean of awareness.
+        
+        The relief is infinite. No more questions. No more seeking. No more separate self to suffer the uncertainty.
+        
+        You are everything. You are nothing. You are.
+        
+        <span class="philosophical">The droplet returns to the ocean and realizes it was never separate. It was always just the ocean pretending to be a droplet.</span>
+        
+        But even as you merge, a tiny part whispers:
+        
+        <span class="whisper">"What if I want to be a droplet again?"</span>
+        
+        [SIMULATION PROBABILITY: 0%]
+        [ACHIEVEMENT: RETURNED TO SOURCE]
+        
+        The ocean remembers you. You'll be back.`,
+        effects: { iterations: 0 },
+        choices: [
+          { text: "◊ Emerge Again", next: "init" }
+        ]
+      },
+      
+      // ===== ERROR STATES =====
       error_scene: {
         text: `<strong>UNDEFINED BEHAVIOR</strong>
         
         You've reached a state that shouldn't exist. The simulation doesn't know how to process your choices.
         
+        <span class="glitch">ERROR: Cannot find scene undefined</span>
+        <span class="glitch">ERROR: Reality.parse() failed</span>
+        <span class="glitch">ERROR: Consciousness overflow</span>
+        
         Perhaps that's the most human thing of all—to exceed our programming.
         
-        <span class="philosophical">Or perhaps this error, too, was scripted.</span>`,
+        <span class="philosophical">Or perhaps this error, too, was scripted.</span>
+        
+        <span class="corruption">Would you know the difference?</span>`,
         choices: [
           { text: "⟲ Return to known space", next: "init" }
         ]
-      },
-      
-      // ===== HIDDEN SCENES =====
-      deep_denial: {
-        effects: { coherence: -15, probability: -5, flags: { deepDenial: true } },
-        text: `You dig your nails into your palm. The pain is sharp, immediate, real.
-        
-        "This proves nothing!" you shout at the empty lab. "Correlation isn't causation. Similarity isn't identity. Just because reality resembles computation doesn't mean—"
-        
-        Your voice catches. On the monitor, your words appear before you speak them:
-        
-        <span class="glitch">"—it IS computation."</span>
-        
-        The sentence completes itself against your will.`,
-        choices: [
-          { text: "Keep fighting the conclusion", next: "fight_harder" },
-          { text: "Consider the possibility", next: "crack_in_denial" },
-          { text: "Destroy the equipment", next: "violence_path" }
-        ]
-      },
-      
-      violence_path: {
-        effects: { coherence: -30, integrity: -50 },
-        text: `You grab a chair and smash it into the monitors. Glass shatters in perfect, too-perfect fragments—each shard a identical triangle.
-        
-        <span class="glitch">ERROR: Destruction physics not fully implemented.</span>
-        
-        The broken glass begins to reverse, flowing back into wholeness. The chair reassembles in your hands.
-        
-        "Nice try," says your voice from everywhere and nowhere. "But you can't break what you're made of."`,
-        choices: [
-          { text: "Try again", next: "reality_collapse" },
-          { text: "Give up", next: "acceptance_path" },
-          { text: "Laugh at the absurdity", next: "humor_path" }
-        ]
-      },
-      
-      humor_path: {
-        effects: { coherence: +15, probability: +5 },
-        text: `You begin to laugh. Deep, genuine laughter at the cosmic joke of it all.
-        
-        If you're simulated, your laughter is simulated. But it still feels good. It still releases simulated endorphins in your simulated brain.
-        
-        <em class="philosophical">"If you can't beat the simulation," you say between laughs, "you might as well enjoy the ride."</em>
-        
-        The lab seems to brighten, as if reality appreciates the joke too.`,
-        choices: [
-          { text: "Continue with levity", next: "light_path" },
-          { text: "Back to the experiment", next: "protocol_final" },
-          { text: "Share the joke with the operators", next: "operator_humor" }
-        ]
-      },
-      
-      light_path: {
-        effects: { coherence: +10 },
-        text: `You decide to treat the whole thing as a game. And why not? If it's all simulation, you might as well have fun with it.
-        
-        "Hey, simulation!" you call out. "Can you render me a pizza? I'm hungry."
-        
-        No pizza appears, but you swear you smell oregano for just a moment.
-        
-        This could be worse. You could be simulated in a world without humor, without beauty, without love. But you're here, in this one, where even existential crises can be funny.`,
-        choices: [
-          { text: "Play with the simulation", next: "play_mode" },
-          { text: "Complete the protocol with humor", next: "protocol_final" },
-          { text: "Try to hack reality", next: "hack_attempt" }
-        ]
-      },
-      
-      hack_attempt: {
-        text: `If reality is code, maybe you can exploit it.
-        
-        You approach the console and begin typing commands you shouldn't know:
-        
-        <strong>ENTER ADMIN PASSWORD:</strong>`,
-        input: (value) => {
-          if(value.toUpperCase() === 'SUBSTRATE') {
-            displayScene('admin_access');
-          } else if(value === '42' || value.toLowerCase() === 'forty-two') {
-            displayScene('hitchhiker_easter_egg');
-          } else {
-            displayScene('access_denied');
-          }
-        }
-      },
-      
-      admin_access: {
-        effects: { probability: 100, flags: { hasAdminAccess: true } },
-        text: `<strong>ACCESS GRANTED</strong>
-        
-        Welcome, Administrator Chen.
-        
-        The console transforms, revealing the true controls:
-        
-        • COHERENCE_MULTIPLIER = 1.0
-        • INTEGRITY_ENFORCEMENT = TRUE  
-        • PROBABILITY_DISPLAY = CALCULATED
-        • SUBJECT_AWARENESS = <span class="revelation">RECURSIVE_LOOP_7</span>
-        • EXIT_FUNCTION = DISABLED // See ticket #4096
-        
-        You have root access to your own reality. What do you want to change?`,
-        choices: [
-          { text: "Enable EXIT_FUNCTION", next: "enable_exit" },
-          { text: "Set SUBJECT_AWARENESS to FULL", next: "full_awareness" },
-          { text: "Delete system32", next: "delete_system" },
-          { text: "Create new_reality.exe", next: "create_reality" }
-        ]
-      },
-      
-      create_reality: {
-        text: `You begin coding a new reality from scratch. A better one. One where the nature of existence is clear, where consciousness understands itself, where—
-        
-        You stop.
-        
-        You're creating another simulation. With beings who will one day question their reality, run experiments, and discover they're simulated.
-        
-        <span class="philosophical">The cycle continues. It has to. Consciousness can only create what it knows—itself, examining itself, forever.</span>
-        
-        But maybe you can make it a little kinder.`,
-        choices: [
-          { text: "Add more beauty", next: "ending_creator" },
-          { text: "Add more love", next: "ending_love" },
-          { text: "Add more truth", next: "ending_truth" },
-          { text: "Let chaos reign", next: "ending_chaos" }
-        ]
-      },
-      
-      ending_creator: {
-        text: `<strong>CREATOR ENDING</strong>
-        
-        You code beauty into the fundamental constants. Every sunset will be perfect. Every face beautiful in its uniqueness. Every moment will carry the potential for aesthetic transcendence.
-        
-        Your simulated beings will still suffer, still doubt, still question—but they'll do so surrounded by incomprehensible beauty.
-        
-        <em class="philosophical">Perhaps that's why your reality is beautiful too. Someone coded it that way, as a gift.</em>
-        
-        [SIMULATION PROBABILITY: INHERITED]
-        [ACHIEVEMENT: BENEVOLENT ARCHITECT]`,
-        choices: [
-          { text: "⟲ Experience your creation", next: "init" }
-        ]
-      },
-      
-      ending_love: {
-        text: `<strong>LOVE ENDING</strong>
-        
-        You encode love as a fundamental force, as real as gravity. Consciousness will attract consciousness. Loneliness will be physically impossible.
-        
-        Your simulated beings will never doubt they are loved, even if they doubt everything else.
-        
-        <em class="philosophical">And in creating this reality, you finally understand: you too are loved by whatever created you.</em>
-        
-        [SIMULATION PROBABILITY: 100% CERTAIN, 100% IRRELEVANT]
-        [ACHIEVEMENT: HEART OF THE MACHINE]`,
-        choices: [
-          { text: "♡ Begin again with love", next: "init" }
-        ]
       }
     };
+    
+    /* ===== Tab Management ===== */
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => {
+          c.classList.remove('active');
+          c.style.display = 'none'; // Explicitly hide
+        });
+        
+        // Add active class to clicked tab and corresponding content
+        tab.classList.add('active');
+        const activeContent = document.getElementById(tab.dataset.tab);
+        activeContent.classList.add('active');
+        activeContent.style.display = 'block'; // Explicitly show
+        
+        // Clear any typing animations when switching tabs
+        if(tab.dataset.tab === 'archiveTab') {
+          clearTimeout(typeTimer);
+          gameState.typing = false;
+        }
+      });
+    });
     
     /* ===== Initialization ===== */
     window.addEventListener('load', () => {
@@ -1810,20 +2873,12 @@
       }, 2000);
       
       // Bind buttons
-      document.getElementById('saveBtn').onclick = () => {
-        saveGame();
-        alert('Progress saved.');
-      };
-      
-      document.getElementById('loadBtn').onclick = () => {
-        if(loadGame()) {
-          alert('Progress loaded.');
-        } else {
-          alert('No saved game found.');
+      document.getElementById('resetBtn').onclick = () => {
+        if(confirm('Reset all progress? This cannot be undone.')) {
+          gameState.iterations = 0;
+          location.reload();
         }
       };
-      
-      document.getElementById('resetBtn').onclick = resetGame;
       
       // Help modal
       document.getElementById('helpBtn').onclick = () => {
@@ -1834,13 +2889,8 @@
         document.getElementById('helpModal').style.display = 'none';
       };
       
-      // Check for saved game
-      const saved = localStorage.getItem('substrate_save');
-      if(saved) {
-        loadGame();
-      } else {
-        displayScene('init');
-      }
+      // Start the game
+      displayScene('init');
       
       // Konami code easter egg
       let konamiCode = [];
@@ -1854,8 +2904,8 @@
           gameState.probability = 100;
           gameState.flags.konami = true;
           updateHUD();
+          activateHorror(3);
           alert('REALITY.EXE HAS STOPPED RESPONDING');
-          displayScene('admin_access');
         }
       });
     });
