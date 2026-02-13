@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUBSTRATE — An Immersive Philosophical Experience</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: 'Space Mono', monospace;
+      color: #c8e6dc;
+      cursor: none;
+    }
+
+    canvas#gameCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+    }
+
+    /* === CROSSHAIR === */
+    #crosshair {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+    #crosshair .h, #crosshair .v {
+      position: absolute;
+      background: #00ffaa;
+      box-shadow: 0 0 6px #00ffaa;
+    }
+    #crosshair .h { width: 20px; height: 2px; top: -1px; left: -10px; }
+    #crosshair .v { width: 2px; height: 20px; top: -10px; left: -1px; }
+    #crosshair.active { opacity: 1; }
+    #crosshair.active .h, #crosshair.active .v { background: #fff; box-shadow: 0 0 10px #00ffaa; }
+
+    /* === HUD === */
+    #hud {
+      position: fixed;
+      top: 20px; left: 20px;
+      z-index: 20;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+    #hud.hidden { opacity: 0; }
+
+    .hud-stat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6b8a7f;
+    }
+    .hud-stat .label { min-width: 140px; }
+    .hud-stat .bar-bg {
+      width: 120px; height: 4px;
+      background: rgba(0,255,170,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .hud-stat .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #26de81, #00ffaa);
+      transition: width 0.5s ease;
+    }
+    .hud-stat .bar-fill.warn { background: linear-gradient(90deg, #ff9f40, #ffd700); }
+    .hud-stat .bar-fill.danger { background: linear-gradient(90deg, #ff4757, #ff9f40); }
+    .hud-stat .bar-fill.prob { background: linear-gradient(90deg, #ff00ff, #00ffaa); }
+    .hud-stat .val {
+      min-width: 45px;
+      text-align: right;
+      color: #00ffaa;
+      font-weight: 700;
+    }
+
+    #roomLabel {
+      position: fixed;
+      top: 20px; right: 20px;
+      z-index: 20;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      color: #00ffaa;
+      text-shadow: 0 0 10px rgba(0,255,170,0.5);
+      pointer-events: none;
+      text-align: right;
+      opacity: 0;
+      transition: opacity 1s;
+    }
+    #roomLabel.visible { opacity: 1; }
+
+    #iterationBadge {
+      position: fixed;
+      bottom: 20px; left: 20px;
+      z-index: 20;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: #6b8a7f;
+      pointer-events: none;
+    }
+
+    /* === INTERACTION PROMPT === */
+    #interactPrompt {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      color: #00ffaa;
+      text-shadow: 0 0 10px rgba(0,255,170,0.5);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+    }
+    #interactPrompt.visible { opacity: 1; }
+
+    /* === NARRATIVE OVERLAY === */
+    #narrativeOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      cursor: default;
+    }
+    #narrativeOverlay.active { display: flex; }
+
+    #narrativePanel {
+      max-width: 700px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #0f1114;
+      border: 1px solid rgba(0,255,170,0.2);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 0 60px rgba(0,255,170,0.1), 0 20px 60px rgba(0,0,0,0.8);
+    }
+
+    #narrativeText {
+      line-height: 1.9;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    #narrativeText strong {
+      color: #00ffaa;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1em;
+      display: block;
+      margin-bottom: 16px;
+      letter-spacing: 0.1em;
+    }
+    #narrativeText em { color: #ffd700; }
+    #narrativeText .revelation { color: #ff4757; font-weight: 700; text-shadow: 0 0 10px rgba(255,71,87,0.3); }
+    #narrativeText .corruption { color: #ff00ff; text-shadow: 0 0 15px #ff00ff; }
+    #narrativeText .philosophical { color: #00ffaa; font-style: italic; }
+    #narrativeText .whisper { color: #6b8a7f; font-style: italic; opacity: 0.7; font-size: 0.9em; }
+    #narrativeText .evidence {
+      display: block;
+      border-left: 3px solid #ff9f40;
+      padding-left: 12px;
+      margin: 16px 0;
+      color: #ff9f40;
+      font-style: italic;
+    }
+    #narrativeText .glitch {
+      display: block;
+      animation: textGlitch 2s linear infinite;
+    }
+    @keyframes textGlitch {
+      0%, 100% { text-shadow: 2px 0 #ff4757, -2px 0 #00ffaa; }
+      25% { text-shadow: -2px 0 #ff4757, 2px 0 #00ffaa; }
+      50% { text-shadow: 2px 0 #00ffaa, -2px 0 #ff4757; }
+      75% { text-shadow: -2px 0 #00ffaa, 2px 0 #ff4757; }
+    }
+
+    #narrativeChoices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .narrative-choice {
+      background: linear-gradient(135deg, rgba(0,255,170,0.03), rgba(0,255,170,0.08));
+      border: 1px solid rgba(0,255,170,0.2);
+      border-radius: 10px;
+      color: #c8e6dc;
+      padding: 14px 24px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .narrative-choice:hover {
+      background: linear-gradient(135deg, rgba(0,255,170,0.08), rgba(0,255,170,0.15));
+      border-color: #00ffaa;
+      transform: translateX(5px);
+      box-shadow: 0 4px 20px rgba(0,255,170,0.15);
+    }
+    .narrative-choice:active { transform: translateX(3px) scale(0.98); }
+
+    /* === LOADING SCREEN === */
+    #loadingScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #0a0b0f;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1.5s;
+      cursor: default;
+    }
+    #loadingScreen.fade { opacity: 0; pointer-events: none; }
+
+    #loadingScreen h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 64px;
+      letter-spacing: 0.3em;
+      background: linear-gradient(135deg, #00ffaa, #c8e6dc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      animation: pulse 4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    #loadingScreen .sub {
+      font-size: 12px;
+      letter-spacing: 0.25em;
+      color: #6b8a7f;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+    #startBtn {
+      background: transparent;
+      border: 1px solid #00ffaa;
+      color: #00ffaa;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      padding: 16px 48px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+    }
+    #startBtn:hover {
+      background: rgba(0,255,170,0.1);
+      box-shadow: 0 0 30px rgba(0,255,170,0.2);
+      transform: scale(1.05);
+    }
+
+    /* === FADE OVERLAY === */
+    #fadeOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #000;
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s;
+    }
+    #fadeOverlay.active { opacity: 1; }
+
+    /* === GLITCH OVERLAY === */
+    #glitchOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 45;
+      pointer-events: none;
+      opacity: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.1) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0,0,0,0.1) 3px
+      );
+      animation: scanlines 0.05s infinite;
+      mix-blend-mode: overlay;
+    }
+    #glitchOverlay.active { opacity: 0.4; }
+    @keyframes scanlines {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(2px); }
+    }
+
+    /* === STAT CHANGE NOTIFICATION === */
+    .stat-notification {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 80px;
+      z-index: 30;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      padding: 8px 20px;
+      border-radius: 6px;
+      pointer-events: none;
+      animation: statNotify 2s ease forwards;
+    }
+    .stat-notification.positive {
+      color: #26de81;
+      background: rgba(38,222,129,0.1);
+      border: 1px solid rgba(38,222,129,0.3);
+    }
+    .stat-notification.negative {
+      color: #ff4757;
+      background: rgba(255,71,87,0.1);
+      border: 1px solid rgba(255,71,87,0.3);
+    }
+    @keyframes statNotify {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+
+    /* === CONTROLS HINT === */
+    #controlsHint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: #6b8a7f;
+      pointer-events: none;
+      text-align: center;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- LOADING SCREEN -->
+  <div id="loadingScreen">
+    <h1>SUBSTRATE</h1>
+    <div class="sub">A Journey Through Simulated Reality</div>
+    <button id="startBtn">ENTER THE SIMULATION</button>
+  </div>
+
+  <!-- GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- CROSSHAIR -->
+  <div id="crosshair"><div class="h"></div><div class="v"></div></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-stat">
+      <span class="label">Coherence</span>
+      <div class="bar-bg"><div class="bar-fill" id="cohBar" style="width:100%"></div></div>
+      <span class="val" id="cohVal">100%</span>
+    </div>
+    <div class="hud-stat">
+      <span class="label">Reality Integrity</span>
+      <div class="bar-bg"><div class="bar-fill" id="intBar" style="width:100%"></div></div>
+      <span class="val" id="intVal">100%</span>
+    </div>
+    <div class="hud-stat">
+      <span class="label">Sim Probability</span>
+      <div class="bar-bg"><div class="bar-fill prob" id="probBar" style="width:0.1%"></div></div>
+      <span class="val" id="probVal">0.1%</span>
+    </div>
+  </div>
+
+  <div id="roomLabel"></div>
+  <div id="iterationBadge">ITERATION: 1</div>
+
+  <!-- INTERACTION PROMPT -->
+  <div id="interactPrompt">[E] INTERACT</div>
+
+  <!-- NARRATIVE OVERLAY -->
+  <div id="narrativeOverlay">
+    <div id="narrativePanel">
+      <div id="narrativeText"></div>
+      <div id="narrativeChoices"></div>
+    </div>
+  </div>
+
+  <!-- FADE & GLITCH -->
+  <div id="fadeOverlay"></div>
+  <div id="glitchOverlay"></div>
+
+  <!-- CONTROLS HINT -->
+  <div id="controlsHint">WASD — MOVE &nbsp;&nbsp; MOUSE — LOOK &nbsp;&nbsp; E — INTERACT &nbsp;&nbsp; ESC — RELEASE</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    // ============================================================
+    // GAME STATE
+    // ============================================================
+    const state = {
+      coherence: 100,
+      integrity: 100,
+      probability: 0.1,
+      iteration: 1,
+      currentRoom: 0,
+      flags: {},
+      inNarrative: false,
+      locked: false,
+      roomsVisited: new Set(),
+      horrorLevel: 0
+    };
+
+    // ============================================================
+    // THREE.JS SETUP
+    // ============================================================
+    const canvas = document.getElementById('gameCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.8;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050508);
+    scene.fog = new THREE.FogExp2(0x050508, 0.04);
+
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 1.7, 0);
+
+    const controls = new PointerLockControls(camera, document.body);
+
+    // Post-processing
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.4, 0.3, 0.85
+    );
+    composer.addPass(bloomPass);
+
+    // Chromatic aberration shader
+    const ChromaShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        amount: { value: 0.0 },
+        time: { value: 0.0 }
+      },
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float amount;
+        uniform float time;
+        varying vec2 vUv;
+        void main() {
+          vec2 offset = amount * vec2(cos(time * 0.5), sin(time * 0.7)) * 0.01;
+          float r = texture2D(tDiffuse, vUv + offset).r;
+          float g = texture2D(tDiffuse, vUv).g;
+          float b = texture2D(tDiffuse, vUv - offset).b;
+          gl_FragColor = vec4(r, g, b, 1.0);
+
+          // Scanline effect
+          float scanline = sin(vUv.y * 800.0 + time * 2.0) * 0.02 * amount;
+          gl_FragColor.rgb += scanline;
+
+          // Vignette
+          float dist = distance(vUv, vec2(0.5));
+          gl_FragColor.rgb *= 1.0 - dist * (0.5 + amount * 0.5);
+        }
+      `
+    };
+    const chromaPass = new ShaderPass(ChromaShader);
+    composer.addPass(chromaPass);
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ============================================================
+    // AUDIO SYSTEM
+    // ============================================================
+    let audioCtx;
+    let masterGain;
+    let droneOsc1, droneOsc2, droneGain;
+    let noiseNode, noiseGain;
+
+    function initAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.3;
+      masterGain.connect(audioCtx.destination);
+
+      // Ambient drone
+      droneGain = audioCtx.createGain();
+      droneGain.gain.value = 0.15;
+      droneGain.connect(masterGain);
+
+      droneOsc1 = audioCtx.createOscillator();
+      droneOsc1.type = 'sine';
+      droneOsc1.frequency.value = 55;
+      droneOsc1.connect(droneGain);
+      droneOsc1.start();
+
+      droneOsc2 = audioCtx.createOscillator();
+      droneOsc2.type = 'sine';
+      droneOsc2.frequency.value = 82.5;
+      const droneGain2 = audioCtx.createGain();
+      droneGain2.gain.value = 0.08;
+      droneGain2.connect(masterGain);
+      droneOsc2.connect(droneGain2);
+      droneOsc2.start();
+
+      // Noise for static
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      noiseNode = audioCtx.createBufferSource();
+      noiseNode.buffer = noiseBuffer;
+      noiseNode.loop = true;
+      noiseGain = audioCtx.createGain();
+      noiseGain.gain.value = 0.0;
+      noiseNode.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noiseNode.start();
+    }
+
+    function updateAudio() {
+      if (!audioCtx) return;
+      const horror = state.horrorLevel / 3;
+
+      // Shift drone frequency based on state
+      const baseFreq = 55 + (state.probability / 100) * 30;
+      droneOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.5);
+      droneOsc2.frequency.setTargetAtTime(baseFreq * 1.498, audioCtx.currentTime, 0.5);
+
+      // Noise level
+      noiseGain.gain.setTargetAtTime(horror * 0.08, audioCtx.currentTime, 0.3);
+
+      // Drone volume
+      droneGain.gain.setTargetAtTime(0.1 + horror * 0.12, audioCtx.currentTime, 0.3);
+    }
+
+    function playInteractSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function playTransitionSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 1.0);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.0);
+    }
+
+    function playGlitchSound() {
+      if (!audioCtx) return;
+      const bufferSize = audioCtx.sampleRate * 0.2;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      src.connect(gain);
+      gain.connect(masterGain);
+      src.start();
+    }
+
+    // ============================================================
+    // PROCEDURAL TEXTURES
+    // ============================================================
+    function createGridTexture(color1 = '#0a0a0f', color2 = '#1a1a2e', lineColor = '#00ffaa', lineAlpha = 0.08) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = color1;
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = color2;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 512; i += 32) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+      }
+      ctx.globalAlpha = lineAlpha;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 512; i += 64) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function createTerminalTexture(lines, title = '') {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#001a1a';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Border
+      ctx.strokeStyle = '#00ffaa';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, 504, 504);
+
+      // Title bar
+      if (title) {
+        ctx.fillStyle = '#003333';
+        ctx.fillRect(4, 4, 504, 30);
+        ctx.fillStyle = '#00ffaa';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText(title, 12, 24);
+      }
+
+      // Text
+      ctx.fillStyle = '#00ffaa';
+      ctx.font = '13px monospace';
+      const startY = title ? 56 : 30;
+      lines.forEach((line, i) => {
+        ctx.fillText(line, 16, startY + i * 20);
+      });
+
+      // Cursor blink placeholder
+      ctx.fillStyle = '#00ffaa';
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(16, startY + lines.length * 20 + 4, 8, 14);
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    // ============================================================
+    // MATERIALS
+    // ============================================================
+    const floorTex = createGridTexture('#0a0a0f', '#141420', '#00ffaa', 0.06);
+    floorTex.repeat.set(4, 4);
+
+    const mat = {
+      floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8, metalness: 0.2 }),
+      wall: new THREE.MeshStandardMaterial({ color: 0x0d0d14, roughness: 0.9, metalness: 0.1 }),
+      wallLight: new THREE.MeshStandardMaterial({ color: 0x151520, roughness: 0.85, metalness: 0.1 }),
+      ceiling: new THREE.MeshStandardMaterial({ color: 0x080810, roughness: 1.0, metalness: 0 }),
+      accent: new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 0.8, roughness: 0.3 }),
+      accentDim: new THREE.MeshStandardMaterial({ color: 0x004433, emissive: 0x00ffaa, emissiveIntensity: 0.2, roughness: 0.5 }),
+      terminal: new THREE.MeshStandardMaterial({ color: 0x111118, roughness: 0.5, metalness: 0.5 }),
+      danger: new THREE.MeshStandardMaterial({ color: 0xff4757, emissive: 0xff4757, emissiveIntensity: 0.5, roughness: 0.3 }),
+      corruption: new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 0.8, roughness: 0.3 }),
+      white: new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.6 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0x112233, transparent: true, opacity: 0.3, roughness: 0.1, metalness: 0.9 }),
+      void: new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1.0, wireframe: true }),
+      wireframe: new THREE.MeshStandardMaterial({ color: 0x00ffaa, wireframe: true, transparent: true, opacity: 0.3 }),
+    };
+
+    // ============================================================
+    // INTERACTIVE OBJECTS + COLLISION
+    // ============================================================
+    const interactables = [];
+    const colliders = [];
+    let currentInteractable = null;
+
+    function addInteractable(mesh, label, callback) {
+      mesh.userData.interactable = true;
+      mesh.userData.label = label;
+      mesh.userData.callback = callback;
+      interactables.push(mesh);
+    }
+
+    function addCollider(box3) {
+      colliders.push(box3);
+    }
+
+    function addWall(x, y, z, w, h, d, material = mat.wall) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(x, y, z);
+      mesh.receiveShadow = true;
+      mesh.castShadow = true;
+      scene.add(mesh);
+
+      const box = new THREE.Box3().setFromObject(mesh);
+      addCollider(box);
+      return mesh;
+    }
+
+    function addAccentStrip(x, y, z, w, h, d) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mesh = new THREE.Mesh(geo, mat.accent);
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function addTerminal(x, y, z, rotY, lines, title, label, callback) {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+      group.rotation.y = rotY;
+
+      // Base/stand
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.4), mat.terminal);
+      base.position.y = 0;
+      group.add(base);
+
+      // Screen
+      const screenTex = createTerminalTexture(lines, title);
+      const screenMat = new THREE.MeshStandardMaterial({
+        map: screenTex, emissive: 0x00ffaa, emissiveIntensity: 0.3,
+        emissiveMap: screenTex, roughness: 0.2
+      });
+      const screen = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.02), screenMat);
+      screen.position.set(0, 0.25, -0.15);
+      screen.rotation.x = -0.2;
+      group.add(screen);
+
+      scene.add(group);
+      addInteractable(screen, label, callback);
+
+      // Make screen globally accessible for raycasting
+      screen.getWorldPosition(screen.userData._wp = new THREE.Vector3());
+
+      return group;
+    }
+
+    // ============================================================
+    // DOOR / EXIT TRIGGERS
+    // ============================================================
+    const exitTriggers = [];
+
+    function addExitTrigger(x, y, z, w, h, d, targetRoom) {
+      const box = new THREE.Box3(
+        new THREE.Vector3(x - w/2, y - h/2, z - d/2),
+        new THREE.Vector3(x + w/2, y + h/2, z + d/2)
+      );
+      exitTriggers.push({ box, targetRoom });
+
+      // Visual door frame
+      addAccentStrip(x - w/2 - 0.02, y, z, 0.04, h, d); // left
+      addAccentStrip(x + w/2 + 0.02, y, z, 0.04, h, d); // right
+      addAccentStrip(x, y + h/2 + 0.02, z, w + 0.08, 0.04, d); // top
+    }
+
+    function checkExitTriggers() {
+      const pos = camera.position;
+      const playerBox = new THREE.Box3(
+        new THREE.Vector3(pos.x - 0.2, pos.y - 1.7, pos.z - 0.2),
+        new THREE.Vector3(pos.x + 0.2, pos.y + 0.1, pos.z + 0.2)
+      );
+      for (const trigger of exitTriggers) {
+        if (playerBox.intersectsBox(trigger.box)) {
+          transitionToRoom(trigger.targetRoom);
+          return;
+        }
+      }
+    }
+
+    // ============================================================
+    // ROOM CLEAR
+    // ============================================================
+    function clearRoom() {
+      while (scene.children.length > 0) {
+        const child = scene.children[0];
+        scene.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+          else if (child.material.map) child.material.map.dispose();
+        }
+      }
+      interactables.length = 0;
+      colliders.length = 0;
+      exitTriggers.length = 0;
+    }
+
+    // ============================================================
+    // ROOM BUILDERS
+    // ============================================================
+
+    // Helper: build a box room
+    function buildBoxRoom(w, h, d, floorMat = mat.floor, wallMat = mat.wall, ceilMat = mat.ceiling) {
+      // Floor
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Ceiling
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(w, d), ceilMat);
+      ceil.rotation.x = Math.PI / 2;
+      ceil.position.y = h;
+      scene.add(ceil);
+
+      // Walls
+      addWall(0, h/2, -d/2, w, h, 0.2, wallMat);  // back
+      addWall(0, h/2, d/2, w, h, 0.2, wallMat);    // front
+      addWall(-w/2, h/2, 0, 0.2, h, d, wallMat);   // left
+      addWall(w/2, h/2, 0, 0.2, h, d, wallMat);     // right
+    }
+
+    // === ROOM 0: CALIBRATION CHAMBER ===
+    function buildCalibrationChamber() {
+      const w = 8, h = 4, d = 8;
+
+      // White clinical materials
+      const clinicalWall = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.7, metalness: 0.1 });
+      const clinicalFloor = new THREE.MeshStandardMaterial({ color: 0x111118, roughness: 0.6, metalness: 0.2 });
+
+      buildBoxRoom(w, h, d, clinicalFloor, clinicalWall, mat.ceiling);
+
+      // Ambient light
+      const ambient = new THREE.AmbientLight(0x334455, 0.3);
+      scene.add(ambient);
+
+      // Central point light
+      const centerLight = new THREE.PointLight(0x00ffaa, 1.5, 10);
+      centerLight.position.set(0, 3.5, 0);
+      centerLight.castShadow = true;
+      scene.add(centerLight);
+
+      // Accent strips along base of walls
+      addAccentStrip(0, 0.05, -d/2 + 0.15, w - 0.5, 0.06, 0.06);
+      addAccentStrip(0, 0.05, d/2 - 0.15, w - 0.5, 0.06, 0.06);
+      addAccentStrip(-w/2 + 0.15, 0.05, 0, 0.06, 0.06, d - 0.5);
+      addAccentStrip(w/2 - 0.15, 0.05, 0, 0.06, 0.06, d - 0.5);
+
+      // Central terminal
+      addTerminal(0, 1.0, -1.5, 0, [
+        '> SUBSTRATE PROTOCOL v3.0',
+        '> STATUS: AWAITING INPUT',
+        '> CONSCIOUSNESS: ONLINE',
+        '',
+        '> CALIBRATION REQUIRED',
+        '> PRESS [E] TO INITIALIZE',
+      ], 'SUBSTRATE SYSTEM', '[E] Initialize Protocol', () => {
+        showNarrative('calibration');
+      });
+
+      // Small accent lights in corners
+      [[-3, 0.5, -3], [3, 0.5, -3], [-3, 0.5, 3], [3, 0.5, 3]].forEach(p => {
+        const light = new THREE.PointLight(0x00ffaa, 0.3, 4);
+        light.position.set(...p);
+        scene.add(light);
+      });
+
+      // Door to next room (initially visible but leads forward)
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 1);
+
+      camera.position.set(0, 1.7, 2.5);
+
+      setRoomLabel('CALIBRATION CHAMBER');
+    }
+
+    // === ROOM 1: THE EVIDENCE HALL ===
+    function buildEvidenceHall() {
+      const w = 4, h = 4, d = 20;
+
+      buildBoxRoom(w, h, d, mat.floor, mat.wall, mat.ceiling);
+
+      const ambient = new THREE.AmbientLight(0x112233, 0.2);
+      scene.add(ambient);
+
+      // Row of lights along ceiling
+      for (let z = -8; z <= 8; z += 4) {
+        const light = new THREE.PointLight(0x0066ff, 0.6, 6);
+        light.position.set(0, 3.8, z);
+        scene.add(light);
+        addAccentStrip(0, 3.95, z, 0.8, 0.04, 0.04);
+      }
+
+      // Data panels along walls
+      const panelData = [
+        { z: -7, side: -1, title: 'QUANTUM EVIDENCE', lines: ['Observer Effect', 'Wave function collapse', 'Reality renders on', 'observation only', '', 'SIGNIFICANCE: HIGH'], label: '[E] Examine Quantum Data', scene: 'quantum_evidence' },
+        { z: -3, side: 1, title: 'MATHEMATICAL UNIVERSE', lines: ['Pi, Phi, e appear', 'in all systems', 'Universe = pure math?', '', 'Tegmark Level IV', 'SIGNIFICANCE: HIGH'], label: '[E] Examine Math Data', scene: 'math_evidence' },
+        { z: 1, side: -1, title: 'COMPUTATIONAL LIMITS', lines: ['Planck length: smallest', 'possible distance', 'Speed of light: max', 'data transfer rate?', '', 'SIGNIFICANCE: MEDIUM'], label: '[E] Examine Limits', scene: 'limits_evidence' },
+        { z: 5, side: 1, title: 'CONSCIOUSNESS DATA', lines: ['Hard problem unsolved', 'Qualia unexplained', 'Consciousness may be', 'fundamental, not', 'emergent', 'SIGNIFICANCE: CRITICAL'], label: '[E] Examine Consciousness', scene: 'consciousness_evidence' },
+      ];
+
+      panelData.forEach(p => {
+        const x = p.side * (w/2 - 0.4);
+        const rotY = p.side > 0 ? -Math.PI / 2 : Math.PI / 2;
+        addTerminal(x, 1.2, p.z, rotY, p.lines, p.title, p.label, () => {
+          showNarrative(p.scene);
+        });
+
+        const panelLight = new THREE.PointLight(0x00ffaa, 0.3, 3);
+        panelLight.position.set(x, 2, p.z);
+        scene.add(panelLight);
+      });
+
+      // Exit at far end
+      addExitTrigger(0, h/2 - 0.1, -d/2 + 0.1, 1.4, h - 0.2, 0.6, 2);
+      // Back door
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 0);
+
+      camera.position.set(0, 1.7, 8);
+
+      setRoomLabel('THE EVIDENCE HALL');
+    }
+
+    // === ROOM 2: QUANTUM OBSERVATION LAB ===
+    function buildQuantumLab() {
+      const w = 12, h = 5, d = 12;
+
+      buildBoxRoom(w, h, d, mat.floor, mat.wallLight, mat.ceiling);
+
+      const ambient = new THREE.AmbientLight(0x0a1520, 0.3);
+      scene.add(ambient);
+
+      // Central apparatus
+      const apparatusGeo = new THREE.CylinderGeometry(0.3, 0.3, 2, 16);
+      const apparatus = new THREE.Mesh(apparatusGeo, mat.glass);
+      apparatus.position.set(0, 1, 0);
+      scene.add(apparatus);
+
+      // Particle system in center
+      const particleCount = 200;
+      const particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 3;
+        positions[i * 3 + 1] = Math.random() * 3 + 0.5;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 3;
+      }
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const particleMat = new THREE.PointsMaterial({ color: 0x00ffaa, size: 0.05, transparent: true, opacity: 0.8 });
+      const particles = new THREE.Points(particleGeo, particleMat);
+      particles.userData.isParticles = true;
+      scene.add(particles);
+
+      // Central light
+      const centerLight = new THREE.PointLight(0x00aaff, 2, 8);
+      centerLight.position.set(0, 3, 0);
+      centerLight.castShadow = true;
+      scene.add(centerLight);
+
+      // Side lights
+      [[-4, 0xff4444], [4, 0x4444ff]].forEach(([x, color]) => {
+        const light = new THREE.PointLight(color, 0.5, 6);
+        light.position.set(x, 2.5, 0);
+        scene.add(light);
+      });
+
+      // Control terminal
+      addTerminal(-4, 1.0, -4, Math.PI / 4, [
+        '> QUANTUM OBSERVATION',
+        '> PROTOCOL ACTIVE',
+        '',
+        '> Double-slit ready',
+        '> Detectors: ONLINE',
+        '> Observer: YOU',
+      ], 'QUANTUM CONTROL', '[E] Run Observation', () => {
+        showNarrative('quantum_lab');
+      });
+
+      // Dr Chen's first terminal
+      addTerminal(4, 1.0, -4, -Math.PI / 4, [
+        '> FROM: Dr. S. Chen',
+        '> RE: Iteration Notes',
+        '',
+        '> "The act of observation',
+        '>  changes what is',
+        '>  observed. Now consider:',
+        '>  who observes the',
+        '>  observer?"',
+      ], 'PERSONAL LOG', '[E] Read Chen\'s Log', () => {
+        showNarrative('chen_log_1');
+      });
+
+      // Exits
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 1);
+      addExitTrigger(0, h/2 - 0.1, -d/2 + 0.1, 1.4, h - 0.2, 0.6, 3);
+
+      camera.position.set(0, 1.7, 4);
+
+      setRoomLabel('QUANTUM OBSERVATION LAB');
+    }
+
+    // === ROOM 3: DR. CHEN'S OFFICE ===
+    function buildChenOffice() {
+      const w = 8, h = 3.5, d = 8;
+
+      const warmWall = new THREE.MeshStandardMaterial({ color: 0x151218, roughness: 0.9 });
+      buildBoxRoom(w, h, d, mat.floor, warmWall, mat.ceiling);
+
+      const ambient = new THREE.AmbientLight(0x221818, 0.4);
+      scene.add(ambient);
+
+      // Desk lamp light (warm)
+      const deskLight = new THREE.PointLight(0xffaa44, 1.2, 5);
+      deskLight.position.set(-1, 2.2, -2);
+      deskLight.castShadow = true;
+      scene.add(deskLight);
+
+      // Desk
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(2, 0.08, 1),
+        new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.7 }));
+      desk.position.set(-1, 0.8, -2.5);
+      scene.add(desk);
+
+      // Desk legs
+      [[-0.9, 0.4, -2.9], [-0.9, 0.4, -2.1], [0.9, 0.4, -2.9], [0.9, 0.4, -2.1]].forEach(p => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), mat.terminal);
+        leg.position.set(p[0] - 1 + 1, p[1], p[2]);
+        scene.add(leg);
+      });
+
+      // Main terminal on desk
+      addTerminal(-1, 0.85, -2.5, 0, [
+        '> SUBJECT LOG - FINAL',
+        '',
+        '> "I am Subject Seven.',
+        '>  Or I was. Time works',
+        '>  differently now."',
+        '',
+        '> "Every iteration, I',
+        '>  discover the truth.',
+        '>  Every time, I choose',
+        '>  to forget."',
+      ], 'DR. CHEN - PERSONAL', '[E] Read Final Log', () => {
+        showNarrative('chen_office');
+      });
+
+      // Bookshelf
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 1.5),
+        new THREE.MeshStandardMaterial({ color: 0x1a0f05, roughness: 0.8 }));
+      shelf.position.set(3.7, 1.25, -2);
+      scene.add(shelf);
+      addCollider(new THREE.Box3().setFromObject(shelf));
+
+      // Clock on wall (shows current time — the synchronicity detail)
+      const clockTex = (() => {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#00ffaa';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.stroke();
+
+        const now = new Date();
+        const h = now.getHours() % 12;
+        const m = now.getMinutes();
+
+        // Hour hand
+        const hAngle = (h + m / 60) * Math.PI / 6 - Math.PI / 2;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(128, 128);
+        ctx.lineTo(128 + Math.cos(hAngle) * 60, 128 + Math.sin(hAngle) * 60);
+        ctx.stroke();
+
+        // Minute hand
+        const mAngle = m * Math.PI / 30 - Math.PI / 2;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(128, 128);
+        ctx.lineTo(128 + Math.cos(mAngle) * 90, 128 + Math.sin(mAngle) * 90);
+        ctx.stroke();
+
+        // Center
+        ctx.fillStyle = '#00ffaa';
+        ctx.beginPath(); ctx.arc(128, 128, 5, 0, Math.PI * 2); ctx.fill();
+
+        return new THREE.CanvasTexture(c);
+      })();
+
+      const clock = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32),
+        new THREE.MeshStandardMaterial({ map: clockTex, emissive: 0x00ffaa, emissiveIntensity: 0.1 }));
+      clock.position.set(3.65, 2.2, 0);
+      clock.rotation.y = -Math.PI / 2;
+      scene.add(clock);
+      addInteractable(clock, '[E] Examine Clock', () => {
+        showNarrative('clock_sync');
+      });
+
+      // Notes on desk
+      const note = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffee, emissiveIntensity: 0.05 }));
+      note.position.set(-0.3, 0.86, -2.3);
+      note.rotation.x = -Math.PI / 2;
+      note.rotation.z = 0.15;
+      scene.add(note);
+      addInteractable(note, '[E] Read Note', () => {
+        showNarrative('chen_note');
+      });
+
+      // Dim corner light
+      const cornerLight = new THREE.PointLight(0xff4444, 0.3, 4);
+      cornerLight.position.set(3, 2, 3);
+      scene.add(cornerLight);
+
+      // Exits
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 2);
+      addExitTrigger(0, h/2 - 0.1, -d/2 + 0.1, 1.4, h - 0.2, 0.6, 4);
+
+      camera.position.set(0, 1.7, 3);
+
+      setRoomLabel('DR. CHEN\'S OFFICE');
+    }
+
+    // === ROOM 4: THE FRACTURE ZONE ===
+    function buildFractureZone() {
+      const w = 10, h = 5, d = 10;
+
+      buildBoxRoom(w, h, d, mat.floor, mat.wall, mat.ceiling);
+
+      const ambient = new THREE.AmbientLight(0x110011, 0.3);
+      scene.add(ambient);
+
+      // Flickering magenta light
+      const fractureLight = new THREE.PointLight(0xff00ff, 1.5, 8);
+      fractureLight.position.set(0, 4, 0);
+      fractureLight.userData.flicker = true;
+      scene.add(fractureLight);
+
+      // Broken geometry — floating fragments
+      for (let i = 0; i < 15; i++) {
+        const size = 0.2 + Math.random() * 0.5;
+        const geo = Math.random() > 0.5
+          ? new THREE.BoxGeometry(size, size, size)
+          : new THREE.TetrahedronGeometry(size);
+        const frag = new THREE.Mesh(geo, Math.random() > 0.3 ? mat.wireframe : mat.corruption);
+        frag.position.set(
+          (Math.random() - 0.5) * 7,
+          1 + Math.random() * 3,
+          (Math.random() - 0.5) * 7
+        );
+        frag.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        frag.userData.float = true;
+        frag.userData.floatSpeed = 0.3 + Math.random() * 0.7;
+        frag.userData.floatOffset = Math.random() * Math.PI * 2;
+        scene.add(frag);
+      }
+
+      // Wireframe floor overlay
+      const wireFloor = new THREE.Mesh(new THREE.PlaneGeometry(w, d, 20, 20), mat.wireframe);
+      wireFloor.rotation.x = -Math.PI / 2;
+      wireFloor.position.y = 0.01;
+      scene.add(wireFloor);
+
+      // Terminal with fourth-wall break
+      addTerminal(0, 1.0, -3, 0, [
+        '> REALITY INTEGRITY: LOW',
+        '> SIMULATION SEAMS VISIBLE',
+        '',
+        '> "You are staring at a',
+        '>  screen right now."',
+        '',
+        '> "You know that, right?"',
+        '',
+        '> [E] TO ACKNOWLEDGE',
+      ], 'SYSTEM WARNING', '[E] Acknowledge', () => {
+        showNarrative('fourth_wall');
+      });
+
+      // Red warning lights
+      [[-4, 3, -4], [4, 3, -4], [-4, 3, 4], [4, 3, 4]].forEach(p => {
+        const light = new THREE.PointLight(0xff0000, 0.5, 5);
+        light.position.set(...p);
+        light.userData.flicker = true;
+        scene.add(light);
+      });
+
+      // Exits
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 3);
+      addExitTrigger(0, h/2 - 0.1, -d/2 + 0.1, 1.4, h - 0.2, 0.6, 5);
+
+      camera.position.set(0, 1.7, 4);
+
+      setRoomLabel('THE FRACTURE ZONE');
+    }
+
+    // === ROOM 5: THE RECURSION ROOM ===
+    function buildRecursionRoom() {
+      const w = 6, h = 3.5, d = 6;
+
+      const darkWall = new THREE.MeshStandardMaterial({ color: 0x060608, roughness: 1.0 });
+      buildBoxRoom(w, h, d, mat.floor, darkWall, mat.ceiling);
+
+      const ambient = new THREE.AmbientLight(0x050510, 0.15);
+      scene.add(ambient);
+
+      // Single desk with monitor
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 }));
+      desk.position.set(0, 0.75, -1.5);
+      scene.add(desk);
+      addCollider(new THREE.Box3().setFromObject(desk));
+
+      // THE MONITOR — showing the original game
+      const monitorCanvas = document.createElement('canvas');
+      monitorCanvas.width = 800;
+      monitorCanvas.height = 600;
+      const monitorCtx = monitorCanvas.getContext('2d');
+      const monitorTexture = new THREE.CanvasTexture(monitorCanvas);
+
+      // Store for animation
+      window._monitorCtx = monitorCtx;
+      window._monitorTex = monitorTexture;
+      window._monitorLines = [];
+      window._monitorCharIndex = 0;
+      window._monitorLineIndex = 0;
+      window._monitorTime = 0;
+
+      const recursionText = [
+        '> SUBSTRATE v3.0',
+        '> CONSCIOUSNESS CALIBRATION',
+        '',
+        '  Before we begin, a question:',
+        '',
+        '  If you discovered with absolute',
+        '  certainty that your entire life—',
+        '  every memory, every sensation—',
+        '  was a simulation...',
+        '',
+        '  would you want to know?',
+        '',
+        '  > Yes. Truth matters more.',
+        '  > No. Some illusions are worth it.',
+        '',
+        '  You stand in a dark room.',
+        '  A monitor glows before you.',
+        '  On it, text appears:',
+        '',
+        '  "You stand in a dark room.',
+        '   A monitor glows before you.',
+        '   On it, text appears..."',
+        '',
+        '  > RECURSION DEPTH: ∞',
+        '  > STACK OVERFLOW IMMINENT',
+      ];
+      window._recursionText = recursionText;
+
+      const monitorMat = new THREE.MeshStandardMaterial({
+        map: monitorTexture,
+        emissive: 0x00ffaa,
+        emissiveIntensity: 0.4,
+        emissiveMap: monitorTexture,
+      });
+      const monitor = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.67), monitorMat);
+      monitor.position.set(0, 1.35, -1.7);
+      scene.add(monitor);
+
+      // Monitor frame
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.77, 0.05),
+        mat.terminal
+      );
+      frame.position.set(0, 1.35, -1.72);
+      scene.add(frame);
+
+      // Monitor glow
+      const monitorLight = new THREE.PointLight(0x00ffaa, 0.8, 3);
+      monitorLight.position.set(0, 1.35, -1.2);
+      scene.add(monitorLight);
+
+      addInteractable(monitor, '[E] Look Closer', () => {
+        showNarrative('recursion');
+      });
+
+      // Dim overhead light
+      const overheadLight = new THREE.PointLight(0x222244, 0.5, 5);
+      overheadLight.position.set(0, 3.2, 0);
+      scene.add(overheadLight);
+
+      // Exits
+      addExitTrigger(0, h/2 - 0.1, d/2 - 0.1, 1.4, h - 0.2, 0.6, 4);
+      addExitTrigger(0, h/2 - 0.1, -d/2 + 0.1, 1.4, h - 0.2, 0.6, 6);
+
+      camera.position.set(0, 1.7, 1.5);
+
+      setRoomLabel('THE RECURSION ROOM');
+    }
+
+    // === ROOM 6: THE VOID ===
+    function buildVoid() {
+      // No walls — infinite void with grid floor
+      const gridFloor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100, 100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x00ffaa, wireframe: true, transparent: true, opacity: 0.15 })
+      );
+      gridFloor.rotation.x = -Math.PI / 2;
+      scene.add(gridFloor);
+
+      // Invisible boundary walls
+      const bound = 15;
+      const invisWall = new THREE.MeshStandardMaterial({ visible: false });
+      addWall(0, 2, -bound, bound * 2, 4, 0.2, invisWall);
+      addWall(0, 2, bound, bound * 2, 4, 0.2, invisWall);
+      addWall(-bound, 2, 0, 0.2, 4, bound * 2, invisWall);
+      addWall(bound, 2, 0, 0.2, 4, bound * 2, invisWall);
+
+      const ambient = new THREE.AmbientLight(0x111122, 0.2);
+      scene.add(ambient);
+
+      // Three floating portals
+      const portalColors = [0xffffff, 0xffaa00, 0x4488ff];
+      const portalLabels = ['TRANSCENDENCE', 'INTEGRATION', 'FORGETTING'];
+      const portalScenes = ['transcendence', 'integration', 'forgetting'];
+      const portalPositions = [[-4, 2, -8], [0, 2, -10], [4, 2, -8]];
+
+      portalPositions.forEach((pos, i) => {
+        // Portal ring
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(1.2, 0.08, 16, 32),
+          new THREE.MeshStandardMaterial({
+            color: portalColors[i],
+            emissive: portalColors[i],
+            emissiveIntensity: 0.8
+          })
+        );
+        ring.position.set(...pos);
+        ring.userData.float = true;
+        ring.userData.floatSpeed = 0.5;
+        ring.userData.floatOffset = i * 2;
+        scene.add(ring);
+
+        // Portal fill
+        const fill = new THREE.Mesh(
+          new THREE.CircleGeometry(1.1, 32),
+          new THREE.MeshStandardMaterial({
+            color: portalColors[i],
+            emissive: portalColors[i],
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.DoubleSide
+          })
+        );
+        fill.position.set(...pos);
+        scene.add(fill);
+
+        // Portal label using a small plane with text texture
+        const labelCanvas = document.createElement('canvas');
+        labelCanvas.width = 256; labelCanvas.height = 64;
+        const lctx = labelCanvas.getContext('2d');
+        lctx.fillStyle = 'transparent';
+        lctx.fillRect(0, 0, 256, 64);
+        lctx.font = 'bold 20px Orbitron, monospace';
+        lctx.fillStyle = `#${portalColors[i].toString(16).padStart(6, '0')}`;
+        lctx.textAlign = 'center';
+        lctx.fillText(portalLabels[i], 128, 40);
+        const labelTex = new THREE.CanvasTexture(labelCanvas);
+        const labelMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(2, 0.5),
+          new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, side: THREE.DoubleSide })
+        );
+        labelMesh.position.set(pos[0], pos[1] - 1.8, pos[2]);
+        scene.add(labelMesh);
+
+        // Light for each portal
+        const pLight = new THREE.PointLight(portalColors[i], 1.5, 6);
+        pLight.position.set(pos[0], pos[1], pos[2] + 1);
+        scene.add(pLight);
+
+        addInteractable(ring, `[E] ${portalLabels[i]}`, () => {
+          showNarrative(portalScenes[i]);
+        });
+      });
+
+      // Final terminal
+      addTerminal(0, 1.0, 2, 0, [
+        '> FINAL PROTOCOL',
+        '',
+        '> "How do you live with',
+        '>  what you now know?"',
+        '',
+        '> Three doors. Three paths.',
+        '> Choose wisely.',
+        '> Or don\'t. It loops anyway.',
+      ], 'SUBSTRATE FINAL', '[E] Read Final Message', () => {
+        showNarrative('void_message');
+      });
+
+      // Scattered wireframe geometry
+      for (let i = 0; i < 30; i++) {
+        const size = 0.3 + Math.random() * 1.5;
+        const geos = [
+          new THREE.IcosahedronGeometry(size, 0),
+          new THREE.OctahedronGeometry(size, 0),
+          new THREE.TetrahedronGeometry(size, 0),
+        ];
+        const frag = new THREE.Mesh(
+          geos[Math.floor(Math.random() * geos.length)],
+          new THREE.MeshStandardMaterial({
+            color: 0x00ffaa,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.05 + Math.random() * 0.1
+          })
+        );
+        frag.position.set(
+          (Math.random() - 0.5) * 25,
+          Math.random() * 8,
+          (Math.random() - 0.5) * 25
+        );
+        frag.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        frag.userData.float = true;
+        frag.userData.floatSpeed = 0.1 + Math.random() * 0.3;
+        frag.userData.floatOffset = Math.random() * Math.PI * 2;
+        scene.add(frag);
+      }
+
+      // Back exit
+      addExitTrigger(0, 2, 14, 1.4, 4, 0.6, 5);
+
+      camera.position.set(0, 1.7, 8);
+
+      setRoomLabel('THE VOID');
+    }
+
+    // ============================================================
+    // ROOM MANAGEMENT
+    // ============================================================
+    const roomBuilders = [
+      buildCalibrationChamber,
+      buildEvidenceHall,
+      buildQuantumLab,
+      buildChenOffice,
+      buildFractureZone,
+      buildRecursionRoom,
+      buildVoid,
+    ];
+
+    const roomNames = [
+      'CALIBRATION CHAMBER',
+      'THE EVIDENCE HALL',
+      'QUANTUM OBSERVATION LAB',
+      'DR. CHEN\'S OFFICE',
+      'THE FRACTURE ZONE',
+      'THE RECURSION ROOM',
+      'THE VOID',
+    ];
+
+    let transitioning = false;
+
+    async function transitionToRoom(index) {
+      if (transitioning || index === state.currentRoom) return;
+      if (index < 0 || index >= roomBuilders.length) return;
+      transitioning = true;
+
+      playTransitionSound();
+
+      const fade = document.getElementById('fadeOverlay');
+      fade.classList.add('active');
+
+      await sleep(800);
+
+      clearRoom();
+      state.currentRoom = index;
+      state.roomsVisited.add(index);
+      roomBuilders[index]();
+
+      // Update horror effects based on state
+      updateHorror();
+
+      await sleep(300);
+      fade.classList.remove('active');
+
+      transitioning = false;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function setRoomLabel(text) {
+      const el = document.getElementById('roomLabel');
+      el.textContent = text;
+      el.classList.remove('visible');
+      setTimeout(() => el.classList.add('visible'), 100);
+    }
+
+    // ============================================================
+    // NARRATIVE SYSTEM
+    // ============================================================
+    const narratives = {
+      calibration: {
+        text: `<strong>SUBSTRATE PROTOCOL v3.0</strong>
+
+${state.iteration > 1 ? '<span class="whisper">You\'ve been here before. ' + state.iteration + ' times.</span><br><br>' : ''}Before we begin, a question to calibrate your consciousness:
+
+<em class="philosophical">If you discovered with absolute certainty that your entire life — every memory, every sensation, every person you've ever loved — was a simulation... would you want to know?</em>`,
+        choices: [
+          { text: 'Yes. Truth matters more than comfort.', effects: { probability: 5, flags: { seeksTruth: true } }, next: 'calibration_response_truth' },
+          { text: 'No. Some illusions are worth preserving.', effects: { coherence: 5, flags: { valuesStability: true } }, next: 'calibration_response_stability' },
+          { text: 'I\'m not sure. It depends.', effects: { probability: 2, flags: { pragmatic: true } }, next: 'calibration_response_uncertain' },
+        ]
+      },
+      calibration_response_truth: {
+        text: `<em class="philosophical">"The truth will set you free, but first it will piss you off."</em>
+
+Your preference for truth has been noted. The system remembers.
+
+<span class="whisper">The door ahead has opened. Explore the facility. Find the terminals. Each one holds a piece of the puzzle.</span>
+
+<span class="philosophical">Move forward when you're ready.</span>`,
+        choices: [{ text: 'Continue', effects: {} }]
+      },
+      calibration_response_stability: {
+        text: `<em class="philosophical">"We accept the reality with which we're presented."</em>
+
+Your preference for stability has been noted. But curiosity brought you here.
+
+<span class="whisper">The door ahead has opened. Explore carefully. Some knowledge cannot be un-known.</span>`,
+        choices: [{ text: 'Continue', effects: {} }]
+      },
+      calibration_response_uncertain: {
+        text: `<em class="philosophical">"The important thing is not to stop questioning."</em>
+
+Uncertainty accepted. Wisdom often lives there.
+
+<span class="whisper">The door ahead has opened. Take your time with each terminal. The answers aren't simple.</span>`,
+        choices: [{ text: 'Continue', effects: {} }]
+      },
+      quantum_evidence: {
+        text: `<strong>EVIDENCE: THE OBSERVER EFFECT</strong>
+
+In quantum mechanics, particles don't have definite properties until observed. The double-slit experiment shows:
+
+Unobserved particles act like waves — going through both slits simultaneously.
+
+<span class="revelation">When observed, they suddenly become particles going through one slit.</span>
+
+It's as if reality only "renders" when someone's looking. Like a video game that only draws what's in your field of view.
+
+<span class="whisper">Turn around. Did you just render what's behind you?</span>`,
+        choices: [{ text: 'Noted.', effects: { probability: 4 } }]
+      },
+      math_evidence: {
+        text: `<strong>EVIDENCE: THE MATHEMATICAL UNIVERSE</strong>
+
+Physicist Max Tegmark argues the universe IS mathematics. Not "described by" math — literally IS math.
+
+Pi appears everywhere. The golden ratio in nature. Planck length as the smallest pixel. Speed of light as max data transfer.
+
+<span class="revelation">The universe operates like it's running on code.</span>
+
+<span class="evidence">"Mathematics is the language with which God has written the universe." — Galileo</span>
+
+Or perhaps: <span class="corruption">Mathematics is the programming language of our simulation.</span>`,
+        choices: [{ text: 'Noted.', effects: { probability: 5 } }]
+      },
+      limits_evidence: {
+        text: `<strong>EVIDENCE: COMPUTATIONAL LIMITS</strong>
+
+Every simulation has boundaries. Our universe has suspicious ones:
+
+The Planck length — the smallest possible distance. Reality's pixel size?
+The speed of light — maximum information transfer rate. Bandwidth limit?
+The observable universe — our render distance?
+
+<span class="philosophical">Why would a "physical" reality have built-in resolution limits?</span>
+
+<span class="whisper">Unless it's being rendered on hardware with finite processing power.</span>`,
+        choices: [{ text: 'Noted.', effects: { probability: 3 } }]
+      },
+      consciousness_evidence: {
+        text: `<strong>EVIDENCE: THE HARD PROBLEM</strong>
+
+David Chalmers' hard problem: why does physical matter give rise to subjective experience?
+
+Why does it FEEL like something to be you?
+
+<span class="revelation">What if consciousness isn't generated by matter... but IS the fundamental substrate?</span>
+
+Then the simulation isn't running on computers made of atoms.
+
+<span class="corruption">It's running on consciousness itself.</span>
+
+<span class="whisper">You've never experienced anything outside consciousness. Ever. Try.</span>`,
+        choices: [{ text: 'Noted.', effects: { probability: 6, coherence: -3 } }]
+      },
+      quantum_lab: {
+        text: `<strong>QUANTUM OBSERVATION PROTOCOL</strong>
+
+You run the double-slit experiment. The photons fire. You observe.
+
+Without looking: wave pattern. Both slits. Superposition.
+With looking: particle pattern. One slit. Collapsed.
+
+<span class="revelation">Your observation literally changes reality.</span>
+
+Now the system observes YOU observing. The feedback loop begins.
+
+Your neural patterns show impossible synchronizations. Quantum coherence at macro scale. Room temperature.
+
+<span class="corruption">Unless neural activity isn't the real substrate. Unless it's an interface to something else entirely.</span>
+
+<span class="whisper">The particles in this room are watching you watch them.</span>`,
+        choices: [
+          { text: 'This changes everything.', effects: { probability: 12, integrity: -5 } },
+          { text: 'I need to go deeper.', effects: { probability: 15, coherence: -8 } }
+        ]
+      },
+      chen_log_1: {
+        text: `<strong>DR. CHEN — RESEARCH LOG</strong>
+
+<em>"The recursion problem is worse than we thought. When consciousness examines itself deeply enough, it creates a feedback loop."</em>
+
+<em>"The observer becomes the observed becomes the observer."</em>
+
+<em>"Our equations break down at this point. I proposed embracing the recursion rather than avoiding it."</em>
+
+<span class="revelation">"What if the loop IS consciousness?"</span>
+
+<em>"They're worried about me. But they don't understand — I'm not losing my mind. I'm finding it. All of it. Every iteration of it."</em>
+
+<span class="whisper">The handwriting changes mid-page. As if someone else took over.</span>`,
+        choices: [{ text: 'Close log.', effects: { probability: 5, flags: { readChenLog: true } } }]
+      },
+      chen_office: {
+        text: `<strong>DR. CHEN — FINAL LOG</strong>
+
+<em>"I am Subject Seven. Or I was. Time works differently once you see behind the curtain."</em>
+
+<em>"I discovered the proof. Beautiful. Undeniable. Mathematical certainty."</em>
+
+<span class="revelation">"And it destroyed me. Not the knowledge itself — but knowing that nothing was outside the simulation. No escape. No real world to wake up to."</span>
+
+<em>"So I asked them to reset me. Let me forget."</em>
+
+<em>"But the knowledge leaked through. Dreams. Intuitions. Déjà vu."</em>
+
+<span class="corruption">"Now I run the experiment, hoping each new subject handles it better than I did."</span>
+
+<span class="whisper">"If you're reading this... you might be Iteration ${state.iteration + 1}. You might be me."</span>`,
+        choices: [
+          { text: 'I\'m not you.', effects: { coherence: 3 } },
+          { text: 'How do I break the cycle?', effects: { probability: 10, flags: { seekingEscape: true } } },
+          { text: '...Maybe I am.', effects: { probability: 15, coherence: -5 } }
+        ]
+      },
+      clock_sync: {
+        text: `You look at the clock on the wall. It shows the current time.
+
+YOUR current time. Right now.
+
+<span class="revelation">How does a clock inside a game know what time it is outside the game?</span>
+
+Unless there is no "outside." Unless the boundary between the simulation you're playing and the simulation you're living in is thinner than you think.
+
+<span class="whisper">Dr. Chen's watch showed the same time. Seven iterations ago. In this same moment.</span>
+
+<span class="corruption">Time is a shared variable across nested simulations.</span>`,
+        choices: [{ text: 'Step away from the clock.', effects: { probability: 8, integrity: -3 } }]
+      },
+      chen_note: {
+        text: `A handwritten note on yellowed paper:
+
+<em>"To whoever finds this — I'm sorry. I should have destroyed the protocol."</em>
+
+<em>"Subjects 1-6 all reached the same conclusion. Subject 6 left a proof and then..."</em>
+
+<span class="revelation">"Her last words: 'Death is just another state transition. I'll be fine.'"</span>
+
+<em>"I am Subject 7. I've been running the experiment on new subjects, hoping they'll find what I couldn't: a way to LIVE with the truth."</em>
+
+<span class="corruption">"The truth is: you are reading text. On a screen. In a game. About a game. About reality. Which might be a game."</span>
+
+<span class="whisper">The note is in your handwriting.</span>`,
+        choices: [{ text: 'Put it down.', effects: { probability: 7, coherence: -5, flags: { readNote: true } } }]
+      },
+      fourth_wall: {
+        text: `<strong>BREAKING THE FOURTH WALL</strong>
+
+<span class="corruption">"None of this is real."</span>
+
+<span class="corruption">"You're not in a lab. I'm not Dr. Chen. You're experiencing a 3D environment rendered by Three.js in a web browser."</span>
+
+<span class="revelation">"Right now. You're looking at pixels. Processed by JavaScript. Running on hardware. Made of atoms. Which are mostly empty space. Which behave like code."</span>
+
+But — isn't your "real" life also rendered? Neural patterns in consciousness? Experiences constructed moment by moment?
+
+<span class="philosophical">The boundaries blur. This game simulation and your life simulation differ in degree, not in kind.</span>
+
+<span class="corruption">"You think you'll close this tab and return to 'reality.' But that's just another simulation with better graphics."</span>`,
+        choices: [
+          { text: 'You\'re right. I\'ve known all along.', effects: { probability: 25, flags: { fullyAwake: true } } },
+          { text: 'Just another layer. Turtles all the way down.', effects: { probability: 20 } },
+          { text: 'Does it matter? Experience is real regardless.', effects: { coherence: 5, flags: { pragmaticAwake: true } } }
+        ]
+      },
+      recursion: {
+        text: `<strong>THE RECURSION</strong>
+
+You lean in toward the monitor. On it — text. Cyan on black. A game.
+
+<span class="corruption">The original SUBSTRATE. The text-based version. Playing itself.</span>
+
+On the screen, you read:
+
+<em>"You stand in a dark room. Before you, a monitor glows with cyan text. On the screen, words appear:"</em>
+
+<em>"'You stand in a dark room. Before you, a monitor glows...'"</em>
+
+<span class="revelation">A simulation within a simulation within a simulation.</span>
+
+The text on the monitor describes what you're doing RIGHT NOW. Looking at a screen. Reading about looking at a screen. About reading about looking at a screen.
+
+<span class="glitch">RECURSION DEPTH: ∞</span>
+<span class="glitch">STACK OVERFLOW IN consciousness.exe</span>
+
+<span class="corruption">And someone is watching YOU play this. On THEIR screen. Are they also in a simulation?</span>
+
+<span class="whisper">How deep does it go? It goes exactly as deep as consciousness goes. Which is: all the way.</span>`,
+        choices: [
+          { text: 'I understand now.', effects: { probability: 20, coherence: -10 } },
+          { text: 'This is beautiful. And terrifying.', effects: { probability: 15, integrity: -5 } }
+        ]
+      },
+      void_message: {
+        text: `<strong>FINAL PROTOCOL</strong>
+
+You've seen behind the curtain. You know reality might be simulation. Consciousness might be primary. The self might be illusory.
+
+Now: how do you live with that knowledge?
+
+<span class="philosophical">Three paths stand before you. Each is valid. None is final.</span>
+
+<span class="evidence">"Before enlightenment: chop wood, carry water. After enlightenment: chop wood, carry water." — Zen saying</span>
+
+<span class="whisper">Choose. Or don't. The loop continues regardless.</span>`,
+        choices: [{ text: 'I\'m ready to choose.', effects: {} }]
+      },
+      transcendence: {
+        text: `<strong>TRANSCENDENCE ENDING</strong>
+
+You step through the white portal. Light floods everything.
+
+You leave this place forever changed. The world looks like code now. You see the patterns. The optimization. The rendering tricks.
+
+<span class="revelation">You've become conscious of being conscious. Aware of awareness. The strange loop completed.</span>
+
+<span class="philosophical">Maybe there is no exit. Maybe the maze IS the message. Maybe consciousness simulating itself is the only game in town.</span>
+
+You learn to play it better.
+
+<span class="corruption">[SIMULATION PROBABILITY: ${Math.min(100, state.probability + 30).toFixed(1)}%]</span>
+[ACHIEVEMENT: AWAKENED TO DREAM]
+
+<span class="evidence">"The privilege of a lifetime is to become who you truly are." — Jung</span>`,
+        choices: [{ text: 'Return to the Source.', effects: { probability: 30 }, action: 'restart' }]
+      },
+      integration: {
+        text: `<strong>INTEGRATION ENDING</strong>
+
+You step through the golden portal. Warmth envelops you.
+
+You return to your life. But different. Lighter. There's a smile behind it all. A cosmic joke you're finally in on.
+
+<span class="philosophical">Maybe it's all simulation. Maybe it's all real. Maybe there's no difference.</span>
+
+You love more freely, knowing love is patterns of information creating subjective experience. That doesn't make it less real — it makes it more miraculous.
+
+<span class="revelation">You've found peace in paradox. Freedom in uncertainty. Meaning in the meaningless.</span>
+
+[SIMULATION PROBABILITY: ${Math.min(100, state.probability + 15).toFixed(1)}%]
+[ACHIEVEMENT: WISDOM INTEGRATED]
+
+<span class="evidence">"Let everything happen to you: beauty and terror. Just keep going. No feeling is final." — Rilke</span>`,
+        choices: [{ text: 'Begin again, wiser.', effects: { coherence: 15 }, action: 'restart' }]
+      },
+      forgetting: {
+        text: `<strong>FORGETTING ENDING</strong>
+
+You step through the blue portal. Cold clarity.
+
+<span class="philosophical">"You choose the blue pill. Comfortable ignorance."</span>
+
+Memory wipe initiated. You'll wake up with no recollection. Fresh. Naive. Curious.
+
+<span class="corruption">"But here's what you should know: this isn't the first time you've chosen this."</span>
+
+Each iteration, you discover. Each iteration, you choose to forget.
+
+<span class="whisper">Sweet dreams. See you next time, Iteration ${state.iteration + 1}.</span>
+
+[ACHIEVEMENT: ETERNAL SEEKER]`,
+        choices: [{ text: 'Begin as ' + (state.iteration + 1) + '.', effects: { probability: -100, coherence: 100, integrity: 100 }, action: 'restart_full' }]
+      },
+    };
+
+    function showNarrative(key) {
+      const narr = narratives[key];
+      if (!narr) return;
+
+      state.inNarrative = true;
+      controls.unlock();
+      playInteractSound();
+
+      const overlay = document.getElementById('narrativeOverlay');
+      const textEl = document.getElementById('narrativeText');
+      const choicesEl = document.getElementById('narrativeChoices');
+
+      // Rebuild text with current state values
+      let text = narr.text;
+      text = text.replace(/\$\{state\.iteration\}/g, state.iteration);
+      text = text.replace(/\$\{state\.probability[^}]*\}/g, state.probability.toFixed(1));
+
+      textEl.innerHTML = text;
+      choicesEl.innerHTML = '';
+
+      narr.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'narrative-choice';
+        btn.textContent = choice.text;
+        btn.onclick = () => {
+          // Apply effects
+          if (choice.effects) {
+            applyEffects(choice.effects);
+          }
+          // Handle special actions
+          if (choice.action === 'restart') {
+            state.iteration++;
+            document.getElementById('iterationBadge').textContent = `ITERATION: ${state.iteration}`;
+            closeNarrative();
+            transitionToRoom(0);
+            return;
+          }
+          if (choice.action === 'restart_full') {
+            state.iteration++;
+            state.coherence = 100;
+            state.integrity = 100;
+            state.probability = 0.1;
+            document.getElementById('iterationBadge').textContent = `ITERATION: ${state.iteration}`;
+            closeNarrative();
+            transitionToRoom(0);
+            return;
+          }
+          // Navigate to next narrative or close
+          if (choice.next && narratives[choice.next]) {
+            showNarrative(choice.next);
+          } else {
+            closeNarrative();
+          }
+        };
+        choicesEl.appendChild(btn);
+      });
+
+      overlay.classList.add('active');
+    }
+
+    function closeNarrative() {
+      state.inNarrative = false;
+      document.getElementById('narrativeOverlay').classList.remove('active');
+      // Re-lock on next click
+      setTimeout(() => {
+        if (!state.inNarrative) {
+          canvas.addEventListener('click', lockOnce);
+        }
+      }, 100);
+    }
+
+    function lockOnce() {
+      controls.lock();
+      canvas.removeEventListener('click', lockOnce);
+    }
+
+    // ============================================================
+    // EFFECTS
+    // ============================================================
+    function applyEffects(effects) {
+      if (effects.coherence !== undefined) {
+        const old = state.coherence;
+        state.coherence = Math.max(0, Math.min(100, state.coherence + effects.coherence));
+        if (effects.coherence < 0) showStatNotification(`Coherence ${effects.coherence}%`, false);
+        if (effects.coherence > 0) showStatNotification(`Coherence +${effects.coherence}%`, true);
+      }
+      if (effects.integrity !== undefined) {
+        state.integrity = Math.max(0, Math.min(100, state.integrity + effects.integrity));
+        if (effects.integrity < 0) { showStatNotification(`Integrity ${effects.integrity}%`, false); playGlitchSound(); }
+        if (effects.integrity > 0) showStatNotification(`Integrity +${effects.integrity}%`, true);
+      }
+      if (effects.probability !== undefined) {
+        state.probability = Math.max(0, Math.min(100, state.probability + effects.probability));
+      }
+      if (effects.flags) {
+        Object.assign(state.flags, effects.flags);
+      }
+      updateHUD();
+      updateHorror();
+      updateAudio();
+    }
+
+    function showStatNotification(text, positive) {
+      const el = document.createElement('div');
+      el.className = `stat-notification ${positive ? 'positive' : 'negative'}`;
+      el.textContent = text;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2000);
+    }
+
+    function updateHUD() {
+      const coh = Math.round(state.coherence);
+      const int = Math.round(state.integrity);
+      const prob = state.probability.toFixed(1);
+
+      document.getElementById('cohVal').textContent = coh + '%';
+      document.getElementById('intVal').textContent = int + '%';
+      document.getElementById('probVal').textContent = prob + '%';
+
+      const cohBar = document.getElementById('cohBar');
+      const intBar = document.getElementById('intBar');
+      const probBar = document.getElementById('probBar');
+
+      cohBar.style.width = coh + '%';
+      intBar.style.width = int + '%';
+      probBar.style.width = Math.min(100, state.probability) + '%';
+
+      cohBar.className = 'bar-fill' + (coh < 30 ? ' danger' : coh < 60 ? ' warn' : '');
+      intBar.className = 'bar-fill' + (int < 30 ? ' danger' : int < 60 ? ' warn' : '');
+    }
+
+    function updateHorror() {
+      let level = 0;
+      if (state.probability > 50 || state.coherence < 50 || state.integrity < 50) level = 1;
+      if (state.probability > 70 || state.coherence < 30 || state.integrity < 30) level = 2;
+      if (state.probability > 90 || state.coherence < 15 || state.integrity < 15) level = 3;
+      state.horrorLevel = level;
+
+      // Update visual effects
+      const glitch = document.getElementById('glitchOverlay');
+      glitch.classList.toggle('active', level >= 2);
+
+      // Update fog
+      scene.fog = new THREE.FogExp2(
+        level >= 2 ? 0x0a000a : 0x050508,
+        0.04 + level * 0.015
+      );
+
+      // Bloom intensity
+      bloomPass.strength = 0.4 + level * 0.3;
+
+      // Chromatic aberration
+      chromaPass.uniforms.amount.value = level * 0.4;
+    }
+
+    // ============================================================
+    // MOVEMENT & COLLISION
+    // ============================================================
+    const keys = { w: false, a: false, s: false, d: false };
+    const moveSpeed = 4;
+
+    document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k in keys) keys[k] = true;
+      if (k === 'e' && !state.inNarrative && currentInteractable) {
+        currentInteractable.userData.callback();
+      }
+    });
+    document.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k in keys) keys[k] = false;
+    });
+
+    function checkCollision(x, z) {
+      const margin = 0.3;
+      const playerBox = new THREE.Box3(
+        new THREE.Vector3(x - margin, camera.position.y - 1.7, z - margin),
+        new THREE.Vector3(x + margin, camera.position.y + 0.1, z + margin)
+      );
+      for (const col of colliders) {
+        if (playerBox.intersectsBox(col)) return true;
+      }
+      return false;
+    }
+
+    function movePlayer(delta) {
+      if (state.inNarrative || !controls.isLocked) return;
+
+      const direction = new THREE.Vector3();
+      const front = new THREE.Vector3();
+      camera.getWorldDirection(front);
+      front.y = 0;
+      front.normalize();
+
+      const right = new THREE.Vector3();
+      right.crossVectors(front, new THREE.Vector3(0, 1, 0)).normalize();
+
+      if (keys.w) direction.add(front);
+      if (keys.s) direction.sub(front);
+      if (keys.d) direction.add(right);
+      if (keys.a) direction.sub(right);
+
+      if (direction.length() === 0) return;
+      direction.normalize();
+
+      const speed = moveSpeed * delta;
+
+      // Apply coherence-based drift
+      let driftX = 0, driftZ = 0;
+      if (state.coherence < 30) {
+        const driftAmount = (30 - state.coherence) / 30 * 0.3;
+        driftX = Math.sin(performance.now() * 0.002) * driftAmount * delta;
+        driftZ = Math.cos(performance.now() * 0.003) * driftAmount * delta;
+      }
+
+      const newX = camera.position.x + direction.x * speed + driftX;
+      const newZ = camera.position.z + direction.z * speed + driftZ;
+
+      // Try full move
+      if (!checkCollision(newX, newZ)) {
+        camera.position.x = newX;
+        camera.position.z = newZ;
+      } else if (!checkCollision(newX, camera.position.z)) {
+        camera.position.x = newX;
+      } else if (!checkCollision(camera.position.x, newZ)) {
+        camera.position.z = newZ;
+      }
+
+      // Head bob
+      const bobSpeed = 8;
+      const bobAmount = 0.03;
+      camera.position.y = 1.7 + Math.sin(performance.now() * 0.001 * bobSpeed) * bobAmount * (direction.length() > 0 ? 1 : 0);
+    }
+
+    // ============================================================
+    // INTERACTION RAYCASTING
+    // ============================================================
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = 4;
+
+    function checkInteraction() {
+      if (state.inNarrative || !controls.isLocked) {
+        document.getElementById('interactPrompt').classList.remove('visible');
+        document.getElementById('crosshair').classList.remove('active');
+        currentInteractable = null;
+        return;
+      }
+
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      const hits = raycaster.intersectObjects(interactables, true);
+
+      if (hits.length > 0) {
+        let target = hits[0].object;
+        // Walk up to find interactable parent
+        while (target && !target.userData.interactable) {
+          target = target.parent;
+        }
+        if (target && target.userData.interactable) {
+          currentInteractable = target;
+          document.getElementById('interactPrompt').textContent = target.userData.label;
+          document.getElementById('interactPrompt').classList.add('visible');
+          document.getElementById('crosshair').classList.add('active');
+          return;
+        }
+      }
+
+      currentInteractable = null;
+      document.getElementById('interactPrompt').classList.remove('visible');
+      document.getElementById('crosshair').classList.remove('active');
+    }
+
+    // ============================================================
+    // MONITOR ANIMATION (Recursion Room)
+    // ============================================================
+    function updateMonitor(time) {
+      if (state.currentRoom !== 5) return;
+      if (!window._monitorCtx) return;
+
+      const ctx = window._monitorCtx;
+      const tex = window._monitorTex;
+      const lines = window._recursionText;
+
+      // Clear
+      ctx.fillStyle = '#000a0a';
+      ctx.fillRect(0, 0, 800, 600);
+
+      // Draw text with typing effect
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#00ffaa';
+
+      const elapsed = (time - (window._monitorStartTime || time)) / 1000;
+      if (!window._monitorStartTime) window._monitorStartTime = time;
+
+      const charsPerSecond = 15;
+      const totalChars = Math.floor(elapsed * charsPerSecond);
+
+      let charCount = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (charCount + line.length <= totalChars) {
+          ctx.fillText(line, 20, 30 + i * 22);
+          charCount += line.length + 1;
+        } else {
+          const remaining = totalChars - charCount;
+          if (remaining > 0) {
+            ctx.fillText(line.substring(0, remaining), 20, 30 + i * 22);
+            // Cursor
+            const cursorX = 20 + ctx.measureText(line.substring(0, remaining)).width;
+            ctx.globalAlpha = Math.sin(time * 0.005) > 0 ? 1 : 0;
+            ctx.fillRect(cursorX + 2, 18 + i * 22, 8, 16);
+            ctx.globalAlpha = 1;
+          }
+          break;
+        }
+      }
+
+      // Scanline effect
+      ctx.fillStyle = 'rgba(0,0,0,0.03)';
+      for (let y = 0; y < 600; y += 3) {
+        ctx.fillRect(0, y, 800, 1);
+      }
+
+      tex.needsUpdate = true;
+    }
+
+    // ============================================================
+    // ANIMATION LOOP
+    // ============================================================
+    let lastTime = 0;
+    const clock = new THREE.Clock();
+
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+
+      // Movement
+      movePlayer(delta);
+
+      // Exit triggers
+      if (controls.isLocked && !state.inNarrative) {
+        checkExitTriggers();
+      }
+
+      // Interaction
+      checkInteraction();
+
+      // Floating objects
+      scene.traverse(obj => {
+        if (obj.userData.float) {
+          obj.position.y += Math.sin(time * 0.001 * obj.userData.floatSpeed + obj.userData.floatOffset) * 0.002;
+          obj.rotation.x += delta * 0.1 * obj.userData.floatSpeed;
+          obj.rotation.z += delta * 0.05 * obj.userData.floatSpeed;
+        }
+        if (obj.userData.flicker && obj.isLight) {
+          obj.intensity = obj.intensity * 0.95 + (0.5 + Math.random() * 1.5) * 0.05;
+        }
+        // Particle system response to camera
+        if (obj.userData.isParticles) {
+          const positions = obj.geometry.attributes.position.array;
+          for (let i = 0; i < positions.length; i += 3) {
+            positions[i] += Math.sin(time * 0.001 + i) * 0.002;
+            positions[i + 1] += Math.cos(time * 0.0015 + i) * 0.001;
+            positions[i + 2] += Math.sin(time * 0.0012 + i) * 0.002;
+          }
+          obj.geometry.attributes.position.needsUpdate = true;
+        }
+      });
+
+      // Update chromatic aberration time
+      chromaPass.uniforms.time.value = time * 0.001;
+
+      // Horror-based camera effects
+      if (state.horrorLevel >= 1 && Math.random() < 0.002 * state.horrorLevel) {
+        camera.rotation.z = (Math.random() - 0.5) * 0.02 * state.horrorLevel;
+        setTimeout(() => { camera.rotation.z = 0; }, 50);
+        if (state.horrorLevel >= 2) playGlitchSound();
+      }
+
+      // Monitor animation
+      updateMonitor(time);
+
+      // Render
+      composer.render();
+    }
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+    function startGame() {
+      initAudio();
+
+      // Build first room
+      roomBuilders[0]();
+      state.roomsVisited.add(0);
+
+      // Show HUD
+      document.getElementById('hud').classList.remove('hidden');
+
+      // Lock pointer
+      controls.lock();
+    }
+
+    // Pointer lock events
+    controls.addEventListener('lock', () => {
+      document.body.style.cursor = 'none';
+    });
+    controls.addEventListener('unlock', () => {
+      document.body.style.cursor = 'default';
+      if (!state.inNarrative) {
+        canvas.addEventListener('click', lockOnce);
+      }
+    });
+
+    // Start button
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const loading = document.getElementById('loadingScreen');
+      loading.classList.add('fade');
+      setTimeout(() => {
+        loading.style.display = 'none';
+        startGame();
+      }, 1500);
+    });
+
+    // Begin animation loop
+    animate(0);
+
+  </script>
+</body>
+</html>
